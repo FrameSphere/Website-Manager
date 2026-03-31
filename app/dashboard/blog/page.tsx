@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
+import { FileText, Star } from 'lucide-react'
 
 interface Post { id: string; title: string; slug: string; status: string; lang: string; published_at: string | null; created_at: string; sites?: { name: string; color: string } }
 interface Site { id: string; name: string; color: string }
@@ -68,13 +69,13 @@ export default function BlogPage() {
   if (!isPro) return (
     <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 40 }}>
       <div style={{ textAlign: 'center', maxWidth: 400 }}>
-        <div style={{ fontSize: 48, marginBottom: 16 }}>📝</div>
+        <FileText size={48} color="var(--text3)" style={{ marginBottom: 16 }} />
         <h2 style={{ fontWeight: 900, fontSize: 22, marginBottom: 8 }}>Blog-Verwaltung ist Pro</h2>
         <p style={{ color: 'var(--text2)', fontSize: 15, lineHeight: 1.6, marginBottom: 28 }}>
           Verwalte Blog-Posts für alle deine Websites. Mehrsprachig, mit SEO-Feldern und Zeitplanung.
         </p>
-        <a href="/dashboard/upgrade" style={{ display: 'inline-block', padding: '12px 28px', borderRadius: 10, background: 'linear-gradient(135deg, #5b6af6, #4346eb)', color: '#fff', textDecoration: 'none', fontWeight: 700, fontSize: 15, boxShadow: '0 6px 18px rgba(91,106,246,0.35)' }}>
-          ⭐ Jetzt upgraden
+        <a href="/dashboard/upgrade" style={{ display: 'inline-flex', alignItems:'center', gap:6, padding: '12px 28px', borderRadius: 10, background: 'linear-gradient(135deg, #5b6af6, #4346eb)', color: '#fff', textDecoration: 'none', fontWeight: 700, fontSize: 15, boxShadow: '0 6px 18px rgba(91,106,246,0.35)' }}>
+          <Star size={14} fill="#fff" color="#fff" /> Jetzt upgraden
         </a>
       </div>
     </div>
@@ -84,7 +85,7 @@ export default function BlogPage() {
     <div style={{ flex: 1, overflowY: 'auto', padding: '24px 28px' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
         <div>
-          <h1 style={{ fontWeight: 900, fontSize: 22, marginBottom: 4 }}>📝 Blog-Verwaltung</h1>
+          <h1 style={{ fontWeight: 900, fontSize: 22, marginBottom: 4, display:'flex', alignItems:'center', gap:8 }}><FileText size={20} /> Blog-Verwaltung</h1>
           <div style={{ fontSize: 12, color: 'var(--text3)', fontFamily: 'Space Mono, monospace' }}>
             {posts.filter(p => p.status === 'published').length} veröffentlicht · {posts.filter(p => p.status === 'draft').length} Entwürfe
           </div>

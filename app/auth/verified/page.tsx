@@ -95,7 +95,7 @@ export default function VerifiedPage() {
         transition: 'opacity 0.5s ease, transform 0.5s ease',
       }}>
         <h1 style={{ fontSize: 28, fontWeight: 900, marginBottom: 10, letterSpacing: '-0.02em' }}>
-          E-Mail bestätigt! 🎉
+          E-Mail bestätigt!
         </h1>
         <p style={{ color: 'var(--text2)', fontSize: 16, lineHeight: 1.6, maxWidth: 360 }}>
           Dein Account ist jetzt aktiv. Du wirst in Kürze automatisch weitergeleitet…

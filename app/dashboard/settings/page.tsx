@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
+import { Settings, Star } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 
@@ -57,7 +58,7 @@ export default function SettingsPage() {
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', padding: '24px 28px' }}>
-      <h1 style={{ fontWeight: 900, fontSize: 22, marginBottom: 28 }}>⚙️ Einstellungen</h1>
+      <h1 style={{ fontWeight: 900, fontSize: 22, marginBottom: 28, display:'flex', alignItems:'center', gap:8 }}><Settings size={20} /> Einstellungen</h1>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 20, maxWidth: 560 }}>
 
@@ -67,7 +68,7 @@ export default function SettingsPage() {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div>
               <div style={{ fontWeight: 700, fontSize: 18, color: isPro ? '#a4bbfd' : 'var(--text1)' }}>
-                {isPro ? '⭐ Pro' : 'Free'}
+                {isPro ? <><Star size={11} fill="#a4bbfd" color="#a4bbfd" style={{marginRight:3}}/> Pro</> : 'Free'}
               </div>
               <div style={{ fontSize: 13, color: 'var(--text3)', marginTop: 4 }}>
                 {isPro ? 'Alle Features freigeschaltet' : 'Bis zu 3 Websites · Basic Features'}

@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import type { Metadata } from 'next'
+import { Bell, Globe, Zap, CheckCheck, Star, AlertTriangle } from 'lucide-react'
 
 export const metadata: Metadata = { title: 'Dashboard' }
 
@@ -7,7 +8,6 @@ export default async function DashboardPage() {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  // Parallel data fetch
   const [sitesRes, todosRes, notifsRes] = await Promise.all([
     supabase.from('sites').select('*').eq('owner_id', user!.id).order('created_at'),
     supabase.from('todos').select('*').eq('owner_id', user!.id).eq('done', false).order('priority', { ascending: false }).limit(10),
@@ -35,14 +35,14 @@ export default async function DashboardPage() {
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
         <div>
           <h1 style={{ fontWeight: 900, fontSize: 22, marginBottom: 4 }}>
-            {greeting}{firstName ? `, ${firstName}` : ''} 👋
+            {greeting}{firstName ? `, ${firstName}` : ''}
           </h1>
           <div style={{ fontSize: 12, color: 'var(--text3)', fontFamily: 'Space Mono, monospace' }}>{dateStr} · SiteControl</div>
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           {unreadNotifs > 0 && (
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)', color: '#f59e0b' }}>
-              🔔 {unreadNotifs} ungelesen
+              <Bell size={11} /> {unreadNotifs} ungelesen
             </span>
           )}
         </div>
@@ -72,14 +72,14 @@ export default async function DashboardPage() {
         <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12 }}>
           <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ fontWeight: 700, fontSize: 13, display: 'flex', alignItems: 'center', gap: 7 }}>
-              🌐 Websites Status
+              <Globe size={14} color="var(--text2)" /> Websites Status
             </div>
             <a href="/dashboard/sites" style={{ fontSize: 11, color: 'var(--text3)', textDecoration: 'none', fontFamily: 'Space Mono, monospace' }}>Alle anzeigen →</a>
           </div>
           <div style={{ padding: 16 }}>
             {sites.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--text3)' }}>
-                <div style={{ fontSize: 28, marginBottom: 10 }}>🌐</div>
+                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 10 }}><Globe size={28} color="var(--text3)" /></div>
                 <div style={{ fontSize: 13, marginBottom: 12 }}>Noch keine Websites hinzugefügt</div>
                 <a href="/dashboard/sites/new" style={{ padding: '8px 16px', borderRadius: 8, background: 'var(--brand)', color: '#fff', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>Website hinzufügen</a>
               </div>
@@ -91,7 +91,9 @@ export default async function DashboardPage() {
                     textDecoration: 'none', display: 'flex', flexDirection: 'column', gap: 6, transition: 'border-color .12s',
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <div style={{ width: 24, height: 24, borderRadius: 6, background: (site.color || '#5b6af6') + '22', border: `1px solid ${site.color || '#5b6af6'}44`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12 }}>🌐</div>
+                      <div style={{ width: 24, height: 24, borderRadius: 6, background: (site.color || '#5b6af6') + '22', border: `1px solid ${site.color || '#5b6af6'}44`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Globe size={12} color={site.color || '#5b6af6'} />
+                      </div>
                       <div>
                         <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text1)' }}>{site.name}</div>
                         <div style={{ fontSize: 9, color: 'var(--text3)', fontFamily: 'Space Mono, monospace' }}>{(site.url || '').replace('https://', '')}</div>
@@ -119,25 +121,30 @@ export default async function DashboardPage() {
         {/* Urgent Todos */}
         <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12 }}>
           <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ fontWeight: 700, fontSize: 13 }}>⚡ Dringende Todos</div>
+            <div style={{ fontWeight: 700, fontSize: 13, display: 'flex', alignItems: 'center', gap: 7 }}>
+              <Zap size={14} color="var(--text2)" /> Dringende Todos
+            </div>
             <a href="/dashboard/todos" style={{ fontSize: 11, color: 'var(--text3)', textDecoration: 'none', fontFamily: 'Space Mono, monospace' }}>Alle →</a>
           </div>
           <div style={{ padding: '8px 0' }}>
             {todos.length === 0 ? (
-              <div style={{ padding: '24px 18px', textAlign: 'center', color: 'var(--text3)', fontSize: 13 }}>
-                ✅ Alle Todos erledigt!
+              <div style={{ padding: '24px 18px', textAlign: 'center', color: 'var(--text3)', fontSize: 13, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                <CheckCheck size={20} color="#22c55e" />
+                Alle Todos erledigt!
               </div>
             ) : (
               todos.slice(0, 7).map(t => (
                 <div key={t.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '9px 18px', borderBottom: '1px solid rgba(31,36,56,0.5)' }}>
                   <div style={{ width: 7, height: 7, borderRadius: '50%', background: PRIO_COLOR[t.priority] || '#6b7280', flexShrink: 0, marginTop: 4 }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 12, fontWeight: t.important ? 700 : 500, color: 'var(--text1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {t.important ? '⭐ ' : ''}{t.title}
+                    <div style={{ fontSize: 12, fontWeight: t.important ? 700 : 500, color: 'var(--text1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 4 }}>
+                      {t.important && <Star size={10} fill="#f59e0b" color="#f59e0b" />}
+                      {t.title}
                     </div>
                     {t.due_date && (
-                      <div style={{ fontSize: 10, color: new Date(t.due_date) < now ? '#ef4444' : 'var(--text3)', fontFamily: 'Space Mono, monospace', marginTop: 2 }}>
-                        {new Date(t.due_date) < now ? '⚠ ' : ''}Fällig {new Date(t.due_date).toLocaleDateString('de-DE')}
+                      <div style={{ fontSize: 10, color: new Date(t.due_date) < now ? '#ef4444' : 'var(--text3)', fontFamily: 'Space Mono, monospace', marginTop: 2, display: 'flex', alignItems: 'center', gap: 3 }}>
+                        {new Date(t.due_date) < now && <AlertTriangle size={9} color="#ef4444" />}
+                        Fällig {new Date(t.due_date).toLocaleDateString('de-DE')}
                       </div>
                     )}
                   </div>
@@ -154,7 +161,9 @@ export default async function DashboardPage() {
       {/* Notifications */}
       <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12 }}>
         <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ fontWeight: 700, fontSize: 13 }}>🔔 Letzte Aktivitäten</div>
+          <div style={{ fontWeight: 700, fontSize: 13, display: 'flex', alignItems: 'center', gap: 7 }}>
+            <Bell size={14} color="var(--text2)" /> Letzte Aktivitäten
+          </div>
           {unreadNotifs > 0 && (
             <span style={{ fontSize: 11, color: 'var(--text3)', fontFamily: 'Space Mono, monospace' }}>{unreadNotifs} ungelesen</span>
           )}

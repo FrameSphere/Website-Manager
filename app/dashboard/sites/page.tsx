@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
+import { Globe, BarChart2, FileText } from 'lucide-react'
 import type { Metadata } from 'next'
 
 const COLORS = ['#5b6af6','#22c55e','#f59e0b','#ef4444','#a78bfa','#60a5fa','#f97316','#34d399']
@@ -57,7 +58,7 @@ export default function SitesPage() {
     <div style={{ flex: 1, overflowY: 'auto', padding: '24px 28px' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
         <div>
-          <h1 style={{ fontWeight: 900, fontSize: 22, marginBottom: 4 }}>🌐 Websites</h1>
+          <h1 style={{ fontWeight: 900, fontSize: 22, marginBottom: 4, display:'flex', alignItems:'center', gap:8 }}><Globe size={20} /> Websites</h1>
           <div style={{ fontSize: 12, color: 'var(--text3)', fontFamily: 'Space Mono, monospace' }}>{sites.length} Website{sites.length !== 1 ? 's' : ''} verwaltet</div>
         </div>
         <button onClick={() => setShowAdd(true)} style={{
@@ -113,7 +114,7 @@ export default function SitesPage() {
         </div>
       ) : sites.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '80px 0', color: 'var(--text3)' }}>
-          <div style={{ fontSize: 48, marginBottom: 16 }}>🌐</div>
+          <Globe size={48} color="var(--text3)" style={{ marginBottom: 16 }} />
           <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text2)', marginBottom: 8 }}>Noch keine Websites</h2>
           <p style={{ fontSize: 14, marginBottom: 24 }}>Füge deine erste Website hinzu, um loszulegen.</p>
           <button onClick={() => setShowAdd(true)} style={{ padding: '10px 24px', borderRadius: 9, background: '#5b6af6', color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 700, fontFamily: 'inherit' }}>+ Website hinzufügen</button>
@@ -126,7 +127,7 @@ export default function SitesPage() {
               <div style={{ padding: '18px 20px' }}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 10 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{ width: 36, height: 36, borderRadius: 10, background: (site.color || '#5b6af6') + '22', border: `1px solid ${site.color || '#5b6af6'}44`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>🌐</div>
+                    <div style={{ width: 36, height: 36, borderRadius: 10, background: (site.color || '#5b6af6') + '22', border: `1px solid ${site.color || '#5b6af6'}44`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Globe size={16} color={site.color || '#5b6af6'} /></div>
                     <div>
                       <div style={{ fontWeight: 800, fontSize: 15 }}>{site.name}</div>
                       <a href={site.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: 'var(--text3)', fontFamily: 'Space Mono, monospace', textDecoration: 'none' }}>
@@ -141,8 +142,8 @@ export default function SitesPage() {
                 </div>
                 {site.description && <p style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.5 }}>{site.description}</p>}
                 <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--border)', display: 'flex', gap: 8 }}>
-                  <a href={`/dashboard/analytics?site=${site.id}`} style={{ flex: 1, textAlign: 'center', padding: '7px', borderRadius: 7, background: 'var(--bg)', border: '1px solid var(--border)', fontSize: 12, fontWeight: 600, color: 'var(--text2)', textDecoration: 'none' }}>📊 Analytics</a>
-                  <a href={`/dashboard/blog?site=${site.id}`} style={{ flex: 1, textAlign: 'center', padding: '7px', borderRadius: 7, background: 'var(--bg)', border: '1px solid var(--border)', fontSize: 12, fontWeight: 600, color: 'var(--text2)', textDecoration: 'none' }}>📝 Blog</a>
+                  <a href={`/dashboard/analytics?site=${site.id}`} style={{ flex: 1, textAlign: 'center', padding: '7px', borderRadius: 7, background: 'var(--bg)', border: '1px solid var(--border)', fontSize: 12, fontWeight: 600, color: 'var(--text2)', textDecoration: 'none', display:'flex', alignItems:'center', justifyContent:'center', gap:4 }}><BarChart2 size={12} /> Analytics</a>
+                  <a href={`/dashboard/blog?site=${site.id}`} style={{ flex: 1, textAlign: 'center', padding: '7px', borderRadius: 7, background: 'var(--bg)', border: '1px solid var(--border)', fontSize: 12, fontWeight: 600, color: 'var(--text2)', textDecoration: 'none', display:'flex', alignItems:'center', justifyContent:'center', gap:4 }}><FileText size={12} /> Blog</a>
                   <a href={site.url} target="_blank" rel="noopener noreferrer" style={{ padding: '7px 10px', borderRadius: 7, background: 'var(--bg)', border: '1px solid var(--border)', fontSize: 12, color: 'var(--text2)', textDecoration: 'none' }}>↗</a>
                 </div>
               </div>

@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
+import { LifeBuoy, Star } from 'lucide-react'
 
 interface Ticket { id: string; subject: string; name: string; email: string; status: string; priority: string; message: string; reply: string; created_at: string; sites?: { name: string; color: string } }
 
@@ -52,12 +53,12 @@ export default function SupportPage() {
   if (!isPro) return (
     <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 40 }}>
       <div style={{ textAlign: 'center', maxWidth: 400 }}>
-        <div style={{ fontSize: 48, marginBottom: 16 }}>🎫</div>
+        <LifeBuoy size={48} color="var(--text3)" style={{ marginBottom: 16 }} />
         <h2 style={{ fontWeight: 900, fontSize: 22, marginBottom: 8 }}>Support-Tickets ist Pro</h2>
         <p style={{ color: 'var(--text2)', fontSize: 15, lineHeight: 1.6, marginBottom: 28 }}>
           Empfange und beantworte Nachrichten deiner Nutzer direkt im Dashboard.
         </p>
-        <a href="/dashboard/upgrade" style={{ display: 'inline-block', padding: '12px 28px', borderRadius: 10, background: 'linear-gradient(135deg, #5b6af6, #4346eb)', color: '#fff', textDecoration: 'none', fontWeight: 700, fontSize: 15 }}>⭐ Jetzt upgraden</a>
+        <a href="/dashboard/upgrade" style={{ display: 'inline-flex', alignItems:'center', gap:6, padding: '12px 28px', borderRadius: 10, background: 'linear-gradient(135deg, #5b6af6, #4346eb)', color: '#fff', textDecoration: 'none', fontWeight: 700, fontSize: 15 }}><Star size={14} fill="#fff" color="#fff" /> Jetzt upgraden</a>
       </div>
     </div>
   )
@@ -67,7 +68,7 @@ export default function SupportPage() {
       {/* Ticket list */}
       <div style={{ width: 340, flexShrink: 0, borderRight: '1px solid var(--border)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <div style={{ padding: '20px 18px 14px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
-          <h1 style={{ fontWeight: 900, fontSize: 18, marginBottom: 12 }}>🎫 Support-Tickets</h1>
+          <h1 style={{ fontWeight: 900, fontSize: 18, marginBottom: 12, display:'flex', alignItems:'center', gap:8 }}><LifeBuoy size={18} /> Support-Tickets</h1>
           <select style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text2)', fontSize: 13, fontFamily: 'inherit', cursor: 'pointer' }}
             value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
             <option value="">Alle ({tickets.length})</option>
@@ -108,7 +109,7 @@ export default function SupportPage() {
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         {!selected ? (
           <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text3)', flexDirection: 'column', gap: 10 }}>
-            <div style={{ fontSize: 36 }}>🎫</div>
+            <LifeBuoy size={36} />
             <div style={{ fontSize: 14 }}>Ticket auswählen</div>
           </div>
         ) : (

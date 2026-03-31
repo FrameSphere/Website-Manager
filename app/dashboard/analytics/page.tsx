@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
+import { BarChart2 } from 'lucide-react'
 
 interface Event { event_type: string; path: string; country: string; device: string; created_at: string; value: number }
 interface Site { id: string; name: string; color: string }
@@ -52,7 +53,7 @@ export default function AnalyticsPage() {
     <div style={{ flex: 1, overflowY: 'auto', padding: '24px 28px' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
         <div>
-          <h1 style={{ fontWeight: 900, fontSize: 22, marginBottom: 4 }}>📊 Analytics</h1>
+          <h1 style={{ fontWeight: 900, fontSize: 22, marginBottom: 4, display:'flex', alignItems:'center', gap:8 }}><BarChart2 size={20} /> Analytics</h1>
           <div style={{ fontSize: 12, color: 'var(--text3)', fontFamily: 'Space Mono, monospace' }}>Pageviews aus deinen Websites</div>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>

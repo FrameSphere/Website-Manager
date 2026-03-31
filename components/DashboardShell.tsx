@@ -4,17 +4,22 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import type { User } from '@supabase/supabase-js'
+import {
+  LayoutDashboard, Globe, CheckSquare, FileText,
+  Layers, LifeBuoy, BarChart2, Pin, Settings,
+  Star, LogOut, ChevronLeft, ChevronRight,
+} from 'lucide-react'
 
 const NAV_ITEMS = [
-  { href: '/dashboard',           label: 'Dashboard',   icon: '⊞',  pro: false },
-  { href: '/dashboard/sites',     label: 'Websites',    icon: '🌐', pro: false },
-  { href: '/dashboard/todos',     label: 'Todos',       icon: '✅',  pro: false },
-  { href: '/dashboard/blog',      label: 'Blog',        icon: '📝',  pro: true  },
-  { href: '/dashboard/changelog', label: 'Changelog',   icon: '🗂️',  pro: true  },
-  { href: '/dashboard/support',   label: 'Support',     icon: '🎫',  pro: true  },
-  { href: '/dashboard/analytics', label: 'Analytics',   icon: '📊',  pro: false },
-  { href: '/dashboard/pinboard',  label: 'Pinboard',    icon: '📌',  pro: false },
-  { href: '/dashboard/settings',  label: 'Einstellungen', icon: '⚙️', pro: false },
+  { href: '/dashboard',           label: 'Dashboard',      Icon: LayoutDashboard, pro: false },
+  { href: '/dashboard/sites',     label: 'Websites',       Icon: Globe,           pro: false },
+  { href: '/dashboard/todos',     label: 'Todos',          Icon: CheckSquare,     pro: false },
+  { href: '/dashboard/blog',      label: 'Blog',           Icon: FileText,        pro: true  },
+  { href: '/dashboard/changelog', label: 'Changelog',      Icon: Layers,          pro: true  },
+  { href: '/dashboard/support',   label: 'Support',        Icon: LifeBuoy,        pro: true  },
+  { href: '/dashboard/analytics', label: 'Analytics',      Icon: BarChart2,       pro: false },
+  { href: '/dashboard/pinboard',  label: 'Pinboard',       Icon: Pin,             pro: false },
+  { href: '/dashboard/settings',  label: 'Einstellungen',  Icon: Settings,        pro: false },
 ]
 
 interface Props {
@@ -60,12 +65,12 @@ export default function DashboardShell({ user, profile, children }: Props) {
 
         {/* Nav */}
         <nav style={{ flex: 1, padding: '12px 8px', overflowY: 'auto', overflowX: 'hidden' }}>
-          {NAV_ITEMS.map(item => {
-            const active = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href))
-            const locked = item.pro && !isPro
+          {NAV_ITEMS.map(({ href, label, Icon, pro }) => {
+            const active = pathname === href || (href !== '/dashboard' && pathname.startsWith(href))
+            const locked = pro && !isPro
 
             return (
-              <Link key={item.href} href={locked ? '/dashboard/upgrade' : item.href} style={{
+              <Link key={href} href={locked ? '/dashboard/upgrade' : href} style={{
                 display: 'flex', alignItems: 'center', gap: 10,
                 padding: sidebarOpen ? '9px 12px' : '9px',
                 borderRadius: 8, marginBottom: 2, textDecoration: 'none',
@@ -75,13 +80,13 @@ export default function DashboardShell({ user, profile, children }: Props) {
                 justifyContent: sidebarOpen ? 'flex-start' : 'center',
                 opacity: locked ? 0.6 : 1,
               }}>
-                <span style={{ fontSize: 15, flexShrink: 0 }}>{item.icon}</span>
+                <Icon size={15} color={active ? '#7e93fb' : 'var(--text2)'} strokeWidth={active ? 2.5 : 2} style={{ flexShrink: 0 }} />
                 {sidebarOpen && (
                   <>
                     <span style={{ fontSize: 13, fontWeight: active ? 700 : 500, color: active ? '#7e93fb' : 'var(--text2)', flex: 1, whiteSpace: 'nowrap' }}>
-                      {item.label}
+                      {label}
                     </span>
-                    {item.pro && !isPro && (
+                    {pro && !isPro && (
                       <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 4, background: 'rgba(167,139,250,0.1)', border: '1px solid rgba(167,139,250,0.2)', color: '#a78bfa', flexShrink: 0 }}>PRO</span>
                     )}
                   </>
@@ -99,7 +104,9 @@ export default function DashboardShell({ user, profile, children }: Props) {
               background: 'linear-gradient(135deg, rgba(91,106,246,0.12), rgba(167,139,250,0.08))',
               border: '1px solid rgba(91,106,246,0.2)', textDecoration: 'none',
             }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: '#a4bbfd', marginBottom: 2 }}>⭐ Upgrade auf Pro</div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#a4bbfd', marginBottom: 2, display: 'flex', alignItems: 'center', gap: 5 }}>
+                <Star size={11} fill="#a4bbfd" color="#a4bbfd" /> Upgrade auf Pro
+              </div>
               <div style={{ fontSize: 10, color: 'var(--text3)' }}>14 Tage kostenlos testen</div>
             </Link>
           )}
@@ -111,7 +118,9 @@ export default function DashboardShell({ user, profile, children }: Props) {
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 12, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{firstName}</div>
-                <div style={{ fontSize: 10, color: 'var(--text3)' }}>{isPro ? '⭐ Pro' : 'Free'}</div>
+                <div style={{ fontSize: 10, color: 'var(--text3)', display: 'flex', alignItems: 'center', gap: 3 }}>
+                  {isPro ? <><Star size={9} fill="#a78bfa" color="#a78bfa" /> Pro</> : 'Free'}
+                </div>
               </div>
             </div>
           )}
@@ -122,14 +131,15 @@ export default function DashboardShell({ user, profile, children }: Props) {
               background: 'transparent', color: 'var(--text3)', cursor: 'pointer', fontSize: 11, fontWeight: 600,
               fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
             }}>
-              {sidebarOpen ? '← Abmelden' : '←'}
+              <LogOut size={13} />
+              {sidebarOpen && 'Abmelden'}
             </button>
             <button onClick={() => setSidebarOpen(!sidebarOpen)} style={{
               padding: '7px 10px', borderRadius: 7, border: '1px solid var(--border)',
               background: 'transparent', color: 'var(--text3)', cursor: 'pointer', fontSize: 12,
-              fontFamily: 'inherit',
+              fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
-              {sidebarOpen ? '‹' : '›'}
+              {sidebarOpen ? <ChevronLeft size={14} /> : <ChevronRight size={14} />}
             </button>
           </div>
         </div>

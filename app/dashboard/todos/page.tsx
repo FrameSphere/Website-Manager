@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
+import { CheckSquare, Star, AlertTriangle } from 'lucide-react'
 
 interface Todo {
   id: string; title: string; description: string; done: boolean
@@ -81,7 +82,7 @@ export default function TodosPage() {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
         <div>
-          <h1 style={{ fontWeight: 900, fontSize: 22, marginBottom: 4 }}>✅ Todos</h1>
+          <h1 style={{ fontWeight: 900, fontSize: 22, marginBottom: 4, display:'flex', alignItems:'center', gap:8 }}><CheckSquare size={20} /> Todos</h1>
           <div style={{ fontSize: 12, color: 'var(--text3)', fontFamily: 'Space Mono, monospace' }}>
             {todos.filter(t => !t.done).length} offen · {todos.filter(t => t.done).length} erledigt
           </div>
@@ -144,7 +145,7 @@ export default function TodosPage() {
                 <div style={{ paddingTop: 22 }}>
                   <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600, color: 'var(--text2)' }}>
                     <input type="checkbox" checked={form.important} onChange={e => setForm(f => ({ ...f, important: e.target.checked }))} />
-                    Wichtig ⭐
+                    Wichtig <Star size={12} fill="#f59e0b" color="#f59e0b" style={{marginLeft:3}}/>
                   </label>
                 </div>
               </div>
@@ -166,7 +167,7 @@ export default function TodosPage() {
         </div>
       ) : filtered.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text3)' }}>
-          <div style={{ fontSize: 40, marginBottom: 12 }}>✅</div>
+          <CheckSquare size={40} color="#22c55e" style={{ marginBottom: 12 }} />
           <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text2)', marginBottom: 6 }}>Nichts hier!</div>
           <div style={{ fontSize: 13 }}>{filter === 'open' ? 'Keine offenen Todos – gut gemacht!' : 'Noch nichts erledigt.'}</div>
         </div>
@@ -199,11 +200,11 @@ export default function TodosPage() {
                 {/* Content */}
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 14, fontWeight: todo.important ? 700 : 500, textDecoration: todo.done ? 'line-through' : 'none', color: 'var(--text1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {todo.important ? '⭐ ' : ''}{todo.title}
+                    {todo.important ? <><Star size={11} fill="#f59e0b" color="#f59e0b" style={{marginRight:3}}/></> : ''}{todo.title}
                   </div>
                   <div style={{ display: 'flex', gap: 10, marginTop: 3, flexWrap: 'wrap' }}>
                     {todo.sites && <span style={{ fontSize: 10, color: todo.sites.color, fontFamily: 'Space Mono, monospace' }}>{todo.sites.name}</span>}
-                    {todo.due_date && <span style={{ fontSize: 10, color: overdue ? '#ef4444' : 'var(--text3)', fontFamily: 'Space Mono, monospace' }}>{overdue ? '⚠ ' : ''}Fällig {new Date(todo.due_date).toLocaleDateString('de-DE')}</span>}
+                    {todo.due_date && <span style={{ fontSize: 10, color: overdue ? '#ef4444' : 'var(--text3)', fontFamily: 'Space Mono, monospace', display:'flex', alignItems:'center', gap:3 }}>{overdue ? <AlertTriangle size={9} color="#ef4444" /> : ''}Fällig {new Date(todo.due_date).toLocaleDateString('de-DE')}</span>}
                   </div>
                 </div>
 

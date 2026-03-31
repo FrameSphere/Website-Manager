@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { Globe, CheckSquare, Bell, FileText, Layers, LifeBuoy, BarChart2, DollarSign, Search, LayoutDashboard, Star } from 'lucide-react'
 
 export const metadata: Metadata = {
   title: 'SiteControl – Alle deine Websites. Ein Dashboard.',
@@ -9,55 +10,55 @@ export const metadata: Metadata = {
 
 const FEATURES = [
   {
-    icon: '🌐',
+    icon: Globe,
     title: 'Sites im Blick',
     desc: 'Alle deine Websites auf einen Blick. Status, Fehler, offene Tickets – sofort sichtbar.',
     free: true,
   },
   {
-    icon: '✅',
+    icon: CheckSquare,
     title: 'Todo-Management',
     desc: 'Priorisierte Aufgaben pro Website. Fälligkeiten, Wichtigkeits-Flags und Prioritätsstufen.',
     free: true,
   },
   {
-    icon: '🔔',
+    icon: Bell,
     title: 'Benachrichtigungen',
     desc: 'Aktivitäts-Feed aller Websites. Fehler, neue Tickets und Updates auf einen Blick.',
     free: true,
   },
   {
-    icon: '📝',
+    icon: FileText,
     title: 'Blog-Verwaltung',
     desc: 'Schreibe, plane und veröffentliche Blog-Posts für alle deine Seiten. Mehrsprachig.',
     free: false,
   },
   {
-    icon: '🗂️',
+    icon: Layers,
     title: 'Changelog-System',
     desc: 'Versionierte Einträge mit Feature, Fix und Breaking-Change-Tags. Automatisch publizierbar.',
     free: false,
   },
   {
-    icon: '🎫',
+    icon: LifeBuoy,
     title: 'Support-Tickets',
     desc: 'Kundennachrichten empfangen, beantworten und verwalten – direkt im Dashboard.',
     free: false,
   },
   {
-    icon: '📊',
+    icon: BarChart2,
     title: 'Analytics',
     desc: 'Pageviews, Geräte-Split, Referrer und Fehler-Logs. Kein externes Tool nötig.',
     free: false,
   },
   {
-    icon: '💰',
+    icon: DollarSign,
     title: 'AdSense-Widget',
     desc: 'Deine Einnahmen der letzten 30 Tage direkt im Dashboard. Mit Sparkline-Chart.',
     free: false,
   },
   {
-    icon: '🔍',
+    icon: Search,
     title: 'Search Console',
     desc: 'Klicks, Impressionen, Top-Keywords und Ø-Position aus Google Search Console.',
     free: false,
@@ -289,13 +290,13 @@ export default function LandingPage() {
               <div style={{ borderRight: '1px solid var(--border)', paddingRight: 16 }}>
                 <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text3)', letterSpacing: '.1em', textTransform: 'uppercase', fontFamily: 'Space Mono, monospace', marginBottom: 12 }}>Navigation</div>
                 {[
-                  { icon: '⊞', label: 'Dashboard', active: true },
-                  { icon: '🌐', label: 'Websites' },
-                  { icon: '✅', label: 'Todos' },
-                  { icon: '📝', label: 'Blog', pro: true },
-                  { icon: '🗂️', label: 'Changelog', pro: true },
-                  { icon: '🎫', label: 'Support', pro: true },
-                  { icon: '📊', label: 'Analytics' },
+                  { icon: LayoutDashboard, label: 'Dashboard', active: true },
+                  { icon: Globe, label: 'Websites' },
+                  { icon: CheckSquare, label: 'Todos' },
+                  { icon: FileText, label: 'Blog', pro: true },
+                  { icon: Layers, label: 'Changelog', pro: true },
+                  { icon: LifeBuoy, label: 'Support', pro: true },
+                  { icon: BarChart2, label: 'Analytics' },
                 ].map(item => (
                   <div key={item.label} style={{
                     display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px',
@@ -303,7 +304,7 @@ export default function LandingPage() {
                     background: item.active ? 'rgba(91,106,246,0.12)' : 'transparent',
                     border: item.active ? '1px solid rgba(91,106,246,0.2)' : '1px solid transparent',
                   }}>
-                    <span style={{ fontSize: 14 }}>{item.icon}</span>
+                    <item.icon size={14} color={item.active ? '#7e93fb' : 'var(--text2)'} />
                     <span style={{ fontSize: 13, fontWeight: item.active ? 700 : 500, color: item.active ? '#7e93fb' : 'var(--text2)', flex: 1 }}>{item.label}</span>
                     {item.pro && <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 4, background: 'rgba(167,139,250,0.1)', border: '1px solid rgba(167,139,250,0.2)', color: '#a78bfa' }}>PRO</span>}
                   </div>
@@ -389,7 +390,7 @@ export default function LandingPage() {
                     color: '#a78bfa', fontFamily: 'Space Mono, monospace',
                   }}>PRO</div>
                 )}
-                <div style={{ fontSize: 28, marginBottom: 12 }}>{f.icon}</div>
+                <div style={{ marginBottom: 12 }}><f.icon size={26} color="var(--text2)" /></div>
                 <h3 style={{ fontWeight: 800, fontSize: 16, marginBottom: 8 }}>{f.title}</h3>
                 <p style={{ color: 'var(--text2)', fontSize: 14, lineHeight: 1.6 }}>{f.desc}</p>
               </div>
