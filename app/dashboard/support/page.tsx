@@ -53,7 +53,7 @@ export default function SupportPage() {
   if (!isPro) return (
     <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 40 }}>
       <div style={{ textAlign: 'center', maxWidth: 400 }}>
-        <LifeBuoy size={48} color="var(--text3)" style={{ marginBottom: 16 }} />
+        <LifeBuoy size={48} color="var(--text3)" style={{ display: 'block', margin: '0 auto 16px' }} />
         <h2 style={{ fontWeight: 900, fontSize: 22, marginBottom: 8 }}>Support-Tickets ist Pro</h2>
         <p style={{ color: 'var(--text2)', fontSize: 15, lineHeight: 1.6, marginBottom: 28 }}>
           Empfange und beantworte Nachrichten deiner Nutzer direkt im Dashboard.

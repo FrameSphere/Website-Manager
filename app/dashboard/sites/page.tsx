@@ -114,7 +114,7 @@ export default function SitesPage() {
         </div>
       ) : sites.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '80px 0', color: 'var(--text3)' }}>
-          <Globe size={48} color="var(--text3)" style={{ marginBottom: 16 }} />
+          <Globe size={48} color="var(--text3)" style={{ marginBottom: 16, display: 'block', margin: '0 auto 16px' }} />
           <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text2)', marginBottom: 8 }}>Noch keine Websites</h2>
           <p style={{ fontSize: 14, marginBottom: 24 }}>Füge deine erste Website hinzu, um loszulegen.</p>
           <button onClick={() => setShowAdd(true)} style={{ padding: '10px 24px', borderRadius: 9, background: '#5b6af6', color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 700, fontFamily: 'inherit' }}>+ Website hinzufügen</button>

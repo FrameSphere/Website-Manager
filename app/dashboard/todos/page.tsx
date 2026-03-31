@@ -167,7 +167,7 @@ export default function TodosPage() {
         </div>
       ) : filtered.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text3)' }}>
-          <CheckSquare size={40} color="#22c55e" style={{ marginBottom: 12 }} />
+          <CheckSquare size={40} color="#22c55e" style={{ display: 'block', margin: '0 auto 12px' }} />
           <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text2)', marginBottom: 6 }}>Nichts hier!</div>
           <div style={{ fontSize: 13 }}>{filter === 'open' ? 'Keine offenen Todos – gut gemacht!' : 'Noch nichts erledigt.'}</div>
         </div>

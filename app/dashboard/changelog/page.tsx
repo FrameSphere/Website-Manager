@@ -133,7 +133,7 @@ export default function ChangelogPage() {
         </div>
       ) : entries.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text3)' }}>
-          <Layers size={40} color="var(--text3)" style={{ marginBottom: 12 }} />
+          <Layers size={40} color="var(--text3)" style={{ display: 'block', margin: '0 auto 12px' }} />
           <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text2)', marginBottom: 6 }}>Noch keine Einträge</div>
           <button onClick={() => setShowAdd(true)} style={{ marginTop: 12, padding: '10px 24px', borderRadius: 9, background: '#5b6af6', color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 700, fontFamily: 'inherit' }}>+ Ersten Eintrag erstellen</button>
         </div>
