@@ -1,20 +1,446 @@
 'use client'
-import { useState, useEffect } from 'react'
-import { Globe, BarChart2, FileText } from 'lucide-react'
-import type { Metadata } from 'next'
+import { useState, useEffect, useCallback } from 'react'
+import {
+  Globe, BarChart2, FileText, Plus, X, Check, Copy, RefreshCw,
+  ExternalLink, Trash2, Edit2, Shield, ShieldCheck, Code, Settings,
+  AlertTriangle, ChevronRight, Zap,
+} from 'lucide-react'
 
 const COLORS = ['#5b6af6','#22c55e','#f59e0b','#ef4444','#a78bfa','#60a5fa','#f97316','#34d399']
-const STATUS_OPTS = [{ val: 'active', label: 'Aktiv', color: '#22c55e' }, { val: 'paused', label: 'Pausiert', color: '#f59e0b' }, { val: 'error', label: 'Fehler', color: '#ef4444' }]
+const STATUS_OPTS = [
+  { val: 'active',  label: 'Aktiv',    color: '#22c55e' },
+  { val: 'paused',  label: 'Pausiert', color: '#f59e0b' },
+  { val: 'error',   label: 'Fehler',   color: '#ef4444' },
+]
 
-interface Site { id: string; name: string; url: string; slug: string; color: string; status: string; description: string }
+type Tab = 'overview' | 'verify' | 'script' | 'edit' | 'danger'
+
+interface Site {
+  id: string; name: string; url: string; slug: string
+  color: string; status: string; description: string; created_at: string
+}
+
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://site-control-nine.vercel.app'
+
+function CopyBlock({ label, value }: { label: string; value: string }) {
+  const [copied, setCopied] = useState(false)
+  function copy() {
+    navigator.clipboard.writeText(value)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1800)
+  }
+  return (
+    <div style={{ marginBottom: 14 }}>
+      <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text3)', marginBottom: 6 }}>{label}</div>
+      <div style={{
+        background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 8,
+        padding: '10px 12px', fontFamily: 'Space Mono, monospace', fontSize: 12,
+        color: 'var(--text2)', wordBreak: 'break-all', position: 'relative',
+        display: 'flex', alignItems: 'flex-start', gap: 10,
+      }}>
+        <span style={{ flex: 1, lineHeight: 1.6 }}>{value}</span>
+        <button onClick={copy} style={{
+          flexShrink: 0, padding: '4px 8px', borderRadius: 6,
+          border: '1px solid var(--border)', background: copied ? 'rgba(34,197,94,0.1)' : 'var(--surface)',
+          color: copied ? '#22c55e' : 'var(--text3)', cursor: 'pointer', fontSize: 11,
+          fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 4,
+          transition: 'all .15s',
+        }}>
+          {copied ? <><Check size={11} /> Kopiert</> : <><Copy size={11} /> Kopieren</>}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function SiteDetail({ site, onUpdate, onDelete, onClose }: {
+  site: Site
+  onUpdate: (s: Site) => void
+  onDelete: (id: string) => void
+  onClose: () => void
+}) {
+  const [tab, setTab] = useState<Tab>('overview')
+  const [edit, setEdit] = useState({ name: site.name, url: site.url, color: site.color, description: site.description || '', status: site.status })
+  const [saving, setSaving] = useState(false)
+  const [verifying, setVerifying] = useState(false)
+  const [verifyMsg, setVerifyMsg] = useState<{ ok: boolean; text: string } | null>(null)
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [stats, setStats] = useState<{ views: number; errors: number } | null>(null)
+
+  useEffect(() => {
+    setEdit({ name: site.name, url: site.url, color: site.color, description: site.description || '', status: site.status })
+    setTab('overview')
+    setVerifyMsg(null)
+    // Load quick stats
+    fetch(`/api/analytics?days=7&site_id=${site.id}`)
+      .then(r => r.json())
+      .then(d => {
+        if (Array.isArray(d)) {
+          setStats({
+            views: d.filter((e: any) => e.event_type === 'pageview').reduce((s: number, e: any) => s + e.value, 0),
+            errors: d.filter((e: any) => e.event_type === 'error').length,
+          })
+        }
+      }).catch(() => {})
+  }, [site.id])
+
+  async function saveEdit(e: React.FormEvent) {
+    e.preventDefault()
+    setSaving(true)
+    const r = await fetch('/api/sites', {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: site.id, ...edit }),
+    })
+    const d = await r.json()
+    if (r.ok) { onUpdate(d); }
+    setSaving(false)
+  }
+
+  async function verify() {
+    setVerifying(true)
+    setVerifyMsg(null)
+    const r = await fetch('/api/sites/verify', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ site_id: site.id }),
+    })
+    const d = await r.json()
+    setVerifyMsg({ ok: d.verified, text: d.message })
+    setVerifying(false)
+  }
+
+  async function deleteSite() {
+    const r = await fetch(`/api/sites?id=${site.id}`, { method: 'DELETE' })
+    if (r.ok) onDelete(site.id)
+  }
+
+  const statusColor = STATUS_OPTS.find(o => o.val === site.status)?.color || '#22c55e'
+  const metaTag = `<meta name="sitecontrol-site-id" content="${site.id}">`
+  const scriptTag = `<script src="${APP_URL}/api/tracker.js?id=${site.id}" defer></script>`
+
+  const inp: React.CSSProperties = {
+    width: '100%', padding: '9px 12px', borderRadius: 8, fontSize: 13,
+    background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--text1)',
+    outline: 'none', fontFamily: 'inherit',
+  }
+
+  const TABS: { id: Tab; label: string; Icon: any }[] = [
+    { id: 'overview', label: 'Übersicht', Icon: Globe },
+    { id: 'verify',   label: 'Verifizieren', Icon: Shield },
+    { id: 'script',   label: 'Tracking', Icon: Code },
+    { id: 'edit',     label: 'Bearbeiten', Icon: Edit2 },
+    { id: 'danger',   label: 'Löschen', Icon: Trash2 },
+  ]
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      {/* Header */}
+      <div style={{ padding: '20px 24px 0', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{
+              width: 40, height: 40, borderRadius: 11,
+              background: (site.color || '#5b6af6') + '22',
+              border: `1.5px solid ${site.color || '#5b6af6'}55`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <Globe size={18} color={site.color || '#5b6af6'} />
+            </div>
+            <div>
+              <div style={{ fontWeight: 800, fontSize: 16 }}>{site.name}</div>
+              <a href={site.url} target="_blank" rel="noopener noreferrer"
+                style={{ fontSize: 12, color: 'var(--text3)', textDecoration: 'none', fontFamily: 'Space Mono, monospace', display: 'flex', alignItems: 'center', gap: 4 }}>
+                {site.url.replace(/^https?:\/\//, '')} <ExternalLink size={10} />
+              </a>
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{
+              padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700,
+              background: statusColor + '15', border: `1px solid ${statusColor}30`, color: statusColor,
+            }}>{STATUS_OPTS.find(o => o.val === site.status)?.label || 'Aktiv'}</span>
+            <button onClick={onClose} style={{ padding: 6, borderRadius: 7, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text3)', cursor: 'pointer', display: 'flex' }}>
+              <X size={14} />
+            </button>
+          </div>
+        </div>
+
+        {/* Tabs */}
+        <div style={{ display: 'flex', gap: 2 }}>
+          {TABS.map(({ id, label, Icon }) => (
+            <button key={id} onClick={() => setTab(id)} style={{
+              display: 'flex', alignItems: 'center', gap: 5, padding: '8px 12px',
+              borderRadius: '8px 8px 0 0', border: 'none', cursor: 'pointer',
+              background: tab === id ? 'var(--bg)' : 'transparent',
+              color: tab === id ? (id === 'danger' ? '#ef4444' : '#7e93fb') : 'var(--text3)',
+              fontWeight: tab === id ? 700 : 500, fontSize: 12, fontFamily: 'inherit',
+              borderBottom: tab === id ? '2px solid ' + (id === 'danger' ? '#ef4444' : '#5b6af6') : '2px solid transparent',
+            }}>
+              <Icon size={12} />
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Tab Content */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: 24 }}>
+
+        {/* OVERVIEW */}
+        {tab === 'overview' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {/* Quick Stats */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              {[
+                { label: 'Pageviews (7T)', val: stats?.views ?? '—', color: '#5b6af6' },
+                { label: 'Fehler (7T)',    val: stats?.errors ?? '—', color: '#ef4444' },
+              ].map(k => (
+                <div key={k.label} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, padding: '14px 16px' }}>
+                  <div style={{ fontSize: 10, color: 'var(--text3)', fontFamily: 'Space Mono, monospace', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 6 }}>{k.label}</div>
+                  <div style={{ fontSize: 24, fontWeight: 900, color: k.color }}>{k.val}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Info */}
+            {site.description && (
+              <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, padding: '14px 16px', fontSize: 13, color: 'var(--text2)', lineHeight: 1.6 }}>
+                {site.description}
+              </div>
+            )}
+
+            {/* Quick Links */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 4 }}>Schnell-Links</div>
+              {[
+                { href: `/dashboard/analytics?site=${site.id}`, Icon: BarChart2, label: 'Analytics öffnen', color: '#5b6af6' },
+                { href: `/dashboard/blog?site=${site.id}`,      Icon: FileText,  label: 'Blog-Posts verwalten', color: '#22c55e' },
+                { href: `/dashboard/todos?site=${site.id}`,     Icon: Zap,       label: 'Todos dieser Site', color: '#f59e0b' },
+                { href: site.url, Icon: ExternalLink, label: 'Website öffnen', color: 'var(--text2)', target: '_blank' },
+              ].map(({ href, Icon, label, color, target }) => (
+                <a key={href} href={href} target={target as any} rel={target ? 'noopener noreferrer' : undefined} style={{
+                  display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px',
+                  borderRadius: 8, background: 'var(--surface)', border: '1px solid var(--border)',
+                  textDecoration: 'none', transition: 'border-color .12s',
+                }}>
+                  <Icon size={14} color={color} />
+                  <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text1)', flex: 1 }}>{label}</span>
+                  <ChevronRight size={12} color="var(--text3)" />
+                </a>
+              ))}
+            </div>
+
+            <div style={{ fontSize: 11, color: 'var(--text3)', fontFamily: 'Space Mono, monospace' }}>
+              Site-ID: {site.id}
+            </div>
+          </div>
+        )}
+
+        {/* VERIFY */}
+        {tab === 'verify' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            <div style={{ background: 'rgba(91,106,246,0.06)', border: '1px solid rgba(91,106,246,0.2)', borderRadius: 12, padding: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                <ShieldCheck size={16} color="#7e93fb" />
+                <span style={{ fontWeight: 700, fontSize: 14, color: '#a4bbfd' }}>Website-Eigentümerschaft bestätigen</span>
+              </div>
+              <p style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.6 }}>
+                Füge den folgenden Meta-Tag in den <code style={{ fontFamily: 'Space Mono, monospace', background: 'var(--bg)', padding: '1px 5px', borderRadius: 4 }}>&lt;head&gt;</code> deiner Website ein. Damit bestätigst du, dass dir diese Domain gehört.
+              </p>
+            </div>
+
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                <div style={{ width: 22, height: 22, borderRadius: '50%', background: '#5b6af6', color: '#fff', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>1</div>
+                <span style={{ fontWeight: 700, fontSize: 13 }}>Meta-Tag in &lt;head&gt; einfügen</span>
+              </div>
+              <CopyBlock label="Meta-Tag" value={metaTag} />
+            </div>
+
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                <div style={{ width: 22, height: 22, borderRadius: '50%', background: '#5b6af6', color: '#fff', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>2</div>
+                <span style={{ fontWeight: 700, fontSize: 13 }}>Verifizierung prüfen</span>
+              </div>
+              <p style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 12 }}>
+                Nachdem du den Tag gespeichert und deployed hast, klicke auf "Jetzt prüfen". Wir rufen deine URL ab und suchen nach dem Tag.
+              </p>
+
+              <button onClick={verify} disabled={verifying} style={{
+                display: 'flex', alignItems: 'center', gap: 8, padding: '11px 20px', borderRadius: 9,
+                background: 'linear-gradient(135deg, #5b6af6, #4346eb)', color: '#fff',
+                border: 'none', cursor: verifying ? 'wait' : 'pointer', fontWeight: 700, fontSize: 14,
+                fontFamily: 'inherit', opacity: verifying ? 0.7 : 1,
+              }}>
+                <RefreshCw size={14} style={{ animation: verifying ? 'spin 1s linear infinite' : 'none' }} />
+                {verifying ? 'Wird geprüft…' : 'Jetzt prüfen'}
+              </button>
+
+              {verifyMsg && (
+                <div style={{
+                  marginTop: 14, padding: '12px 16px', borderRadius: 9,
+                  background: verifyMsg.ok ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)',
+                  border: `1px solid ${verifyMsg.ok ? 'rgba(34,197,94,0.25)' : 'rgba(239,68,68,0.25)'}`,
+                  color: verifyMsg.ok ? '#22c55e' : '#ef4444',
+                  fontSize: 13, display: 'flex', alignItems: 'flex-start', gap: 8,
+                }}>
+                  {verifyMsg.ok ? <Check size={14} style={{ marginTop: 1, flexShrink: 0 }} /> : <AlertTriangle size={14} style={{ marginTop: 1, flexShrink: 0 }} />}
+                  {verifyMsg.text}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* SCRIPT / TRACKING */}
+        {tab === 'script' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            <div style={{ background: 'rgba(34,197,94,0.06)', border: '1px solid rgba(34,197,94,0.2)', borderRadius: 12, padding: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                <Code size={15} color="#22c55e" />
+                <span style={{ fontWeight: 700, fontSize: 14, color: '#22c55e' }}>Tracking-Script</span>
+              </div>
+              <p style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.6 }}>
+                Das Script läuft auf deiner Website und sendet Daten an SiteControl. Es trackt automatisch Pageviews, SPA-Navigation, ausgehende Links und JS-Fehler. Kein Cookie, DSGVO-freundlich.
+              </p>
+            </div>
+
+            <div>
+              <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 10 }}>Script-Tag einbinden</div>
+              <p style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 12 }}>
+                Füge dieses Tag kurz vor <code style={{ fontFamily: 'Space Mono, monospace', background: 'var(--bg)', padding: '1px 5px', borderRadius: 4 }}>&lt;/body&gt;</code> ein:
+              </p>
+              <CopyBlock label="Tracking Script" value={scriptTag} />
+            </div>
+
+            <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 16 }}>
+              <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 12 }}>Was wird getrackt?</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {[
+                  ['Pageviews', 'Jeder Seitenaufruf inkl. SPA-Routen'],
+                  ['Gerät', 'Mobile, Tablet oder Desktop'],
+                  ['Referrer', 'Woher kommen deine Besucher'],
+                  ['Outbound Links', 'Klicks auf externe Links'],
+                  ['JS Fehler', 'Frontend-Fehler werden automatisch geloggt'],
+                  ['Land', 'Via Vercel Geo-IP (anonym)'],
+                ].map(([label, desc]) => (
+                  <div key={label} style={{ display: 'flex', gap: 10, fontSize: 13 }}>
+                    <Check size={13} color="#22c55e" style={{ marginTop: 2, flexShrink: 0 }} />
+                    <div>
+                      <span style={{ fontWeight: 600 }}>{label}</span>
+                      <span style={{ color: 'var(--text3)' }}> — {desc}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 16 }}>
+              <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 6 }}>Direkt-Endpunkt</div>
+              <p style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 10 }}>Du kannst auch manuell Events senden:</p>
+              <CopyBlock label="POST Endpoint" value={`${APP_URL}/api/track`} />
+              <div style={{ fontSize: 11, color: 'var(--text3)', fontFamily: 'Space Mono, monospace', lineHeight: 1.7 }}>
+                {`{ "site_id": "${site.id}", "event_type": "pageview", "path": "/", "referrer": null, "device": "desktop" }`}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* EDIT */}
+        {tab === 'edit' && (
+          <form onSubmit={saveEdit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text2)', marginBottom: 6 }}>Name *</label>
+              <input style={inp} value={edit.name} onChange={e => setEdit(f => ({ ...f, name: e.target.value }))} required />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text2)', marginBottom: 6 }}>URL *</label>
+              <input style={inp} type="url" value={edit.url} onChange={e => setEdit(f => ({ ...f, url: e.target.value }))} required />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text2)', marginBottom: 6 }}>Beschreibung</label>
+              <textarea style={{ ...inp, height: 80, resize: 'none' } as any} value={edit.description} onChange={e => setEdit(f => ({ ...f, description: e.target.value }))} placeholder="Kurze Beschreibung…" />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text2)', marginBottom: 6 }}>Status</label>
+              <select style={inp} value={edit.status} onChange={e => setEdit(f => ({ ...f, status: e.target.value }))}>
+                {STATUS_OPTS.map(o => <option key={o.val} value={o.val}>{o.label}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text2)', marginBottom: 8 }}>Farbe</label>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {COLORS.map(c => (
+                  <button key={c} type="button" onClick={() => setEdit(f => ({ ...f, color: c }))}
+                    style={{ width: 28, height: 28, borderRadius: '50%', background: c, border: edit.color === c ? '3px solid #fff' : '3px solid transparent', cursor: 'pointer', outline: 'none', transform: edit.color === c ? 'scale(1.2)' : 'scale(1)', transition: 'transform .1s' }} />
+                ))}
+              </div>
+            </div>
+            <button type="submit" disabled={saving} style={{
+              display: 'flex', alignItems: 'center', gap: 6, padding: '11px 20px',
+              borderRadius: 9, background: 'linear-gradient(135deg, #5b6af6, #4346eb)',
+              color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 14, fontFamily: 'inherit',
+              opacity: saving ? 0.7 : 1,
+            }}>
+              <Check size={14} />
+              {saving ? 'Speichern…' : 'Änderungen speichern'}
+            </button>
+          </form>
+        )}
+
+        {/* DANGER */}
+        {tab === 'danger' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 12, padding: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                <AlertTriangle size={15} color="#ef4444" />
+                <span style={{ fontWeight: 700, fontSize: 14, color: '#ef4444' }}>Gefahrenzone</span>
+              </div>
+              <p style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.6 }}>
+                Das Löschen dieser Website entfernt alle zugehörigen Daten: Analytics-Events, Todos, Blog-Posts, Changelog und Support-Tickets. Diese Aktion kann nicht rückgängig gemacht werden.
+              </p>
+            </div>
+
+            {!confirmDelete ? (
+              <button onClick={() => setConfirmDelete(true)} style={{
+                display: 'flex', alignItems: 'center', gap: 8, padding: '11px 20px',
+                borderRadius: 9, border: '1px solid rgba(239,68,68,0.3)',
+                background: 'rgba(239,68,68,0.06)', color: '#ef4444',
+                cursor: 'pointer', fontWeight: 700, fontSize: 14, fontFamily: 'inherit',
+              }}>
+                <Trash2 size={14} /> Website löschen
+              </button>
+            ) : (
+              <div style={{ background: 'var(--surface)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 12, padding: 18 }}>
+                <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 8 }}>Bist du sicher?</div>
+                <p style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 16 }}>
+                  <strong>{site.name}</strong> wird permanent gelöscht.
+                </p>
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <button onClick={() => setConfirmDelete(false)} style={{ flex: 1, padding: '10px', borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text2)', cursor: 'pointer', fontWeight: 600, fontFamily: 'inherit' }}>
+                    Abbrechen
+                  </button>
+                  <button onClick={deleteSite} style={{ flex: 1, padding: '10px', borderRadius: 8, background: '#ef4444', color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 700, fontFamily: 'inherit' }}>
+                    Endgültig löschen
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
 
 export default function SitesPage() {
   const [sites, setSites] = useState<Site[]>([])
   const [loading, setLoading] = useState(true)
+  const [selected, setSelected] = useState<Site | null>(null)
   const [showAdd, setShowAdd] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [error, setError] = useState('')
+  const [addError, setAddError] = useState('')
   const [form, setForm] = useState({ name: '', url: '', color: '#5b6af6', description: '' })
+  const [search, setSearch] = useState('')
 
   useEffect(() => { loadSites() }, [])
 
@@ -29,126 +455,180 @@ export default function SitesPage() {
   async function addSite(e: React.FormEvent) {
     e.preventDefault()
     setSaving(true)
-    setError('')
+    setAddError('')
     const r = await fetch('/api/sites', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(form),
     })
     const d = await r.json()
-    if (!r.ok) { setError(d.error); setSaving(false); return }
+    if (!r.ok) { setAddError(d.error); setSaving(false); return }
     setSites(s => [...s, d])
+    setSelected(d)
     setForm({ name: '', url: '', color: '#5b6af6', description: '' })
     setShowAdd(false)
     setSaving(false)
   }
 
-  async function updateStatus(id: string, status: string) {
-    await fetch('/api/sites', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, status }) })
-    setSites(s => s.map(x => x.id === id ? { ...x, status } : x))
+  function handleUpdate(updated: Site) {
+    setSites(s => s.map(x => x.id === updated.id ? updated : x))
+    setSelected(updated)
   }
 
-  const inputStyle: React.CSSProperties = {
-    width: '100%', padding: '10px 13px', borderRadius: 9, fontSize: 14,
+  function handleDelete(id: string) {
+    setSites(s => s.filter(x => x.id !== id))
+    setSelected(null)
+  }
+
+  const filtered = sites.filter(s =>
+    !search || s.name.toLowerCase().includes(search.toLowerCase()) || s.url.toLowerCase().includes(search.toLowerCase())
+  )
+
+  const inp: React.CSSProperties = {
+    width: '100%', padding: '9px 12px', borderRadius: 8, fontSize: 13,
     background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--text1)',
     outline: 'none', fontFamily: 'inherit',
   }
 
   return (
-    <div style={{ flex: 1, overflowY: 'auto', padding: '24px 28px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
-        <div>
-          <h1 style={{ fontWeight: 900, fontSize: 22, marginBottom: 4, display:'flex', alignItems:'center', gap:8 }}><Globe size={20} /> Websites</h1>
-          <div style={{ fontSize: 12, color: 'var(--text3)', fontFamily: 'Space Mono, monospace' }}>{sites.length} Website{sites.length !== 1 ? 's' : ''} verwaltet</div>
+    <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+
+      {/* LEFT: Site List */}
+      <div style={{ width: selected ? 300 : '100%', flexShrink: 0, borderRight: selected ? '1px solid var(--border)' : 'none', display: 'flex', flexDirection: 'column', overflow: 'hidden', transition: 'width .2s ease' }}>
+
+        {/* List Header */}
+        <div style={{ padding: '20px 20px 14px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Globe size={18} color="var(--text2)" />
+              <h1 style={{ fontWeight: 900, fontSize: 18 }}>Websites</h1>
+            </div>
+            <button onClick={() => setShowAdd(true)} style={{
+              display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 8,
+              background: 'linear-gradient(135deg, #5b6af6, #4346eb)', color: '#fff',
+              border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 13, fontFamily: 'inherit',
+            }}>
+              <Plus size={14} /> Hinzufügen
+            </button>
+          </div>
+          <input
+            value={search} onChange={e => setSearch(e.target.value)}
+            placeholder="Website suchen…"
+            style={{ ...inp, padding: '8px 12px' }}
+          />
         </div>
-        <button onClick={() => setShowAdd(true)} style={{
-          padding: '10px 20px', borderRadius: 9, background: 'linear-gradient(135deg, #5b6af6, #4346eb)',
-          color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 14, fontFamily: 'inherit',
-          boxShadow: '0 4px 14px rgba(91,106,246,0.3)',
-        }}>+ Website hinzufügen</button>
+
+        {/* Site List */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: 12 }}>
+          {loading ? (
+            [1,2,3].map(i => <div key={i} style={{ height: 72, borderRadius: 10, background: 'var(--surface)', border: '1px solid var(--border)', marginBottom: 8 }} />)
+          ) : filtered.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text3)' }}>
+              <Globe size={36} style={{ display: 'block', margin: '0 auto 12px' }} />
+              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text2)', marginBottom: 6 }}>
+                {search ? 'Keine Ergebnisse' : 'Noch keine Websites'}
+              </div>
+              {!search && (
+                <button onClick={() => setShowAdd(true)} style={{ marginTop: 12, padding: '9px 20px', borderRadius: 8, background: '#5b6af6', color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 700, fontFamily: 'inherit', fontSize: 13 }}>
+                  + Website hinzufügen
+                </button>
+              )}
+            </div>
+          ) : filtered.map(site => {
+            const isSelected = selected?.id === site.id
+            const statusColor = STATUS_OPTS.find(o => o.val === site.status)?.color || '#22c55e'
+            return (
+              <div key={site.id} onClick={() => setSelected(isSelected ? null : site)} style={{
+                padding: '12px 14px', borderRadius: 10, marginBottom: 6, cursor: 'pointer',
+                background: isSelected ? 'rgba(91,106,246,0.08)' : 'var(--surface)',
+                border: isSelected ? '1px solid rgba(91,106,246,0.3)' : '1px solid var(--border)',
+                transition: 'all .12s',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{
+                    width: 32, height: 32, borderRadius: 8, flexShrink: 0,
+                    background: (site.color || '#5b6af6') + '22',
+                    border: `1px solid ${site.color || '#5b6af6'}44`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <Globe size={14} color={site.color || '#5b6af6'} />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 700, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{site.name}</div>
+                    <div style={{ fontSize: 10, color: 'var(--text3)', fontFamily: 'Space Mono, monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {site.url.replace(/^https?:\/\//, '')}
+                    </div>
+                  </div>
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: statusColor, flexShrink: 0 }} />
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
+        {/* Footer Stats */}
+        <div style={{ padding: '10px 16px', borderTop: '1px solid var(--border)', flexShrink: 0 }}>
+          <div style={{ fontSize: 11, color: 'var(--text3)', fontFamily: 'Space Mono, monospace' }}>
+            {sites.filter(s => s.status === 'active').length} aktiv · {sites.filter(s => s.status === 'error').length} Fehler · {sites.length} gesamt
+          </div>
+        </div>
       </div>
 
-      {/* Add modal */}
+      {/* RIGHT: Detail Panel */}
+      {selected && (
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
+          <SiteDetail
+            site={selected}
+            onUpdate={handleUpdate}
+            onDelete={handleDelete}
+            onClose={() => setSelected(null)}
+          />
+        </div>
+      )}
+
+      {/* Add Modal */}
       {showAdd && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 999, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+        <div style={{ position: 'fixed', inset: 0, zIndex: 999, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}
           onClick={e => { if (e.target === e.currentTarget) setShowAdd(false) }}>
           <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 18, padding: 32, width: '100%', maxWidth: 460 }}>
-            <h2 style={{ fontWeight: 800, fontSize: 18, marginBottom: 24 }}>Website hinzufügen</h2>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+              <h2 style={{ fontWeight: 800, fontSize: 18 }}>Website hinzufügen</h2>
+              <button onClick={() => setShowAdd(false)} style={{ padding: 6, borderRadius: 7, border: '1px solid var(--border)', background: 'transparent', cursor: 'pointer', color: 'var(--text3)', display: 'flex' }}><X size={14} /></button>
+            </div>
             <form onSubmit={addSite}>
               <div style={{ marginBottom: 14 }}>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text2)', marginBottom: 6 }}>Name *</label>
-                <input style={inputStyle} value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Mein Blog" required />
+                <input style={inp} value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Mein Blog" required />
               </div>
               <div style={{ marginBottom: 14 }}>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text2)', marginBottom: 6 }}>URL *</label>
-                <input style={inputStyle} value={form.url} onChange={e => setForm(f => ({ ...f, url: e.target.value }))} placeholder="https://meinblog.de" required type="url" />
+                <input style={inp} type="url" value={form.url} onChange={e => setForm(f => ({ ...f, url: e.target.value }))} placeholder="https://meinblog.de" required />
               </div>
               <div style={{ marginBottom: 14 }}>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text2)', marginBottom: 6 }}>Beschreibung</label>
-                <input style={inputStyle} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Kurze Beschreibung…" />
+                <input style={inp} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Optional…" />
               </div>
               <div style={{ marginBottom: 24 }}>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text2)', marginBottom: 8 }}>Farbe</label>
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                   {COLORS.map(c => (
                     <button key={c} type="button" onClick={() => setForm(f => ({ ...f, color: c }))}
-                      style={{ width: 28, height: 28, borderRadius: '50%', background: c, border: form.color === c ? '3px solid #fff' : '3px solid transparent', cursor: 'pointer', outline: 'none', transition: 'transform .1s', transform: form.color === c ? 'scale(1.15)' : 'scale(1)' }} />
+                      style={{ width: 28, height: 28, borderRadius: '50%', background: c, border: form.color === c ? '3px solid #fff' : '3px solid transparent', cursor: 'pointer', outline: 'none', transform: form.color === c ? 'scale(1.2)' : 'scale(1)', transition: 'transform .1s' }} />
                   ))}
                 </div>
               </div>
-              {error && <div style={{ padding: '9px 13px', borderRadius: 8, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: '#ef4444', fontSize: 13, marginBottom: 16 }}>{error}</div>}
+              {addError && (
+                <div style={{ padding: '9px 13px', borderRadius: 8, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: '#ef4444', fontSize: 13, marginBottom: 16 }}>
+                  {addError}
+                </div>
+              )}
               <div style={{ display: 'flex', gap: 10 }}>
                 <button type="button" onClick={() => setShowAdd(false)} style={{ flex: 1, padding: 11, borderRadius: 9, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text2)', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>Abbrechen</button>
                 <button type="submit" disabled={saving} style={{ flex: 1, padding: 11, borderRadius: 9, background: 'linear-gradient(135deg, #5b6af6, #4346eb)', color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 700, fontFamily: 'inherit', opacity: saving ? 0.7 : 1 }}>
-                  {saving ? 'Speichern…' : 'Hinzufügen'}
+                  {saving ? 'Erstellen…' : 'Hinzufügen'}
                 </button>
               </div>
             </form>
           </div>
-        </div>
-      )}
-
-      {loading ? (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
-          {[1,2,3].map(i => <div key={i} style={{ height: 160, borderRadius: 14, background: 'var(--surface)', border: '1px solid var(--border)' }} className="skeleton" />)}
-        </div>
-      ) : sites.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '80px 0', color: 'var(--text3)' }}>
-          <Globe size={48} color="var(--text3)" style={{ marginBottom: 16, display: 'block', margin: '0 auto 16px' }} />
-          <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text2)', marginBottom: 8 }}>Noch keine Websites</h2>
-          <p style={{ fontSize: 14, marginBottom: 24 }}>Füge deine erste Website hinzu, um loszulegen.</p>
-          <button onClick={() => setShowAdd(true)} style={{ padding: '10px 24px', borderRadius: 9, background: '#5b6af6', color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 700, fontFamily: 'inherit' }}>+ Website hinzufügen</button>
-        </div>
-      ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 16 }}>
-          {sites.map(site => (
-            <div key={site.id} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden' }}>
-              <div style={{ height: 4, background: site.color || '#5b6af6' }} />
-              <div style={{ padding: '18px 20px' }}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 10 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{ width: 36, height: 36, borderRadius: 10, background: (site.color || '#5b6af6') + '22', border: `1px solid ${site.color || '#5b6af6'}44`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Globe size={16} color={site.color || '#5b6af6'} /></div>
-                    <div>
-                      <div style={{ fontWeight: 800, fontSize: 15 }}>{site.name}</div>
-                      <a href={site.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: 'var(--text3)', fontFamily: 'Space Mono, monospace', textDecoration: 'none' }}>
-                        {site.url.replace('https://', '')} ↗
-                      </a>
-                    </div>
-                  </div>
-                  <select value={site.status} onChange={e => updateStatus(site.id, e.target.value)}
-                    style={{ fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg)', color: STATUS_OPTS.find(o => o.val === site.status)?.color || 'var(--text2)', cursor: 'pointer', fontFamily: 'inherit' }}>
-                    {STATUS_OPTS.map(o => <option key={o.val} value={o.val}>{o.label}</option>)}
-                  </select>
-                </div>
-                {site.description && <p style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.5 }}>{site.description}</p>}
-                <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--border)', display: 'flex', gap: 8 }}>
-                  <a href={`/dashboard/analytics?site=${site.id}`} style={{ flex: 1, textAlign: 'center', padding: '7px', borderRadius: 7, background: 'var(--bg)', border: '1px solid var(--border)', fontSize: 12, fontWeight: 600, color: 'var(--text2)', textDecoration: 'none', display:'flex', alignItems:'center', justifyContent:'center', gap:4 }}><BarChart2 size={12} /> Analytics</a>
-                  <a href={`/dashboard/blog?site=${site.id}`} style={{ flex: 1, textAlign: 'center', padding: '7px', borderRadius: 7, background: 'var(--bg)', border: '1px solid var(--border)', fontSize: 12, fontWeight: 600, color: 'var(--text2)', textDecoration: 'none', display:'flex', alignItems:'center', justifyContent:'center', gap:4 }}><FileText size={12} /> Blog</a>
-                  <a href={site.url} target="_blank" rel="noopener noreferrer" style={{ padding: '7px 10px', borderRadius: 7, background: 'var(--bg)', border: '1px solid var(--border)', fontSize: 12, color: 'var(--text2)', textDecoration: 'none' }}>↗</a>
-                </div>
-              </div>
-            </div>
-          ))}
         </div>
       )}
     </div>
