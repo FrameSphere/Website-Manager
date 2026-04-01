@@ -437,8 +437,13 @@ export default function SitesPage() {
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState<Site | null>(null)
   const [showAdd, setShowAdd] = useState(false)
+  const [addStep, setAddStep] = useState<1 | 2>(1)
+  const [newSite, setNewSite] = useState<Site | null>(null)
   const [saving, setSaving] = useState(false)
   const [addError, setAddError] = useState('')
+  const [verifying, setVerifying] = useState(false)
+  const [verifyMsg, setVerifyMsg] = useState<{ ok: boolean; text: string } | null>(null)
+  const [verified, setVerified] = useState(false)
   const [form, setForm] = useState({ name: '', url: '', color: '#5b6af6', description: '' })
   const [search, setSearch] = useState('')
 
@@ -452,6 +457,24 @@ export default function SitesPage() {
     setLoading(false)
   }
 
+  function openAdd() {
+    setAddStep(1)
+    setNewSite(null)
+    setVerifyMsg(null)
+    setVerified(false)
+    setAddError('')
+    setForm({ name: '', url: '', color: '#5b6af6', description: '' })
+    setShowAdd(true)
+  }
+
+  function closeAdd() {
+    setShowAdd(false)
+    // If site was created but not verified, still keep it (unverified)
+    if (newSite && !verified) {
+      setSites(s => s.some(x => x.id === newSite.id) ? s : [...s, newSite])
+    }
+  }
+
   async function addSite(e: React.FormEvent) {
     e.preventDefault()
     setSaving(true)
@@ -463,10 +486,28 @@ export default function SitesPage() {
     const d = await r.json()
     if (!r.ok) { setAddError(d.error); setSaving(false); return }
     setSites(s => [...s, d])
-    setSelected(d)
-    setForm({ name: '', url: '', color: '#5b6af6', description: '' })
-    setShowAdd(false)
+    setNewSite(d)
+    setAddStep(2)
     setSaving(false)
+  }
+
+  async function verifyNewSite() {
+    if (!newSite) return
+    setVerifying(true)
+    setVerifyMsg(null)
+    const r = await fetch('/api/sites/verify', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ site_id: newSite.id }),
+    })
+    const d = await r.json()
+    setVerifyMsg({ ok: d.verified, text: d.message })
+    if (d.verified) setVerified(true)
+    setVerifying(false)
+  }
+
+  function finishAdd() {
+    if (newSite) setSelected(newSite)
+    setShowAdd(false)
   }
 
   function handleUpdate(updated: Site) {
@@ -502,7 +543,7 @@ export default function SitesPage() {
               <Globe size={18} color="var(--text2)" />
               <h1 style={{ fontWeight: 900, fontSize: 18 }}>Websites</h1>
             </div>
-            <button onClick={() => setShowAdd(true)} style={{
+            <button onClick={openAdd} style={{
               display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 8,
               background: 'linear-gradient(135deg, #5b6af6, #4346eb)', color: '#fff',
               border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 13, fontFamily: 'inherit',
@@ -528,7 +569,7 @@ export default function SitesPage() {
                 {search ? 'Keine Ergebnisse' : 'Noch keine Websites'}
               </div>
               {!search && (
-                <button onClick={() => setShowAdd(true)} style={{ marginTop: 12, padding: '9px 20px', borderRadius: 8, background: '#5b6af6', color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 700, fontFamily: 'inherit', fontSize: 13 }}>
+                <button onClick={openAdd} style={{ marginTop: 12, padding: '9px 20px', borderRadius: 8, background: '#5b6af6', color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 700, fontFamily: 'inherit', fontSize: 13 }}>
                   + Website hinzufügen
                 </button>
               )}
@@ -585,49 +626,150 @@ export default function SitesPage() {
         </div>
       )}
 
-      {/* Add Modal */}
+      {/* Add Modal – 2 Steps */}
       {showAdd && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 999, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}
-          onClick={e => { if (e.target === e.currentTarget) setShowAdd(false) }}>
-          <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 18, padding: 32, width: '100%', maxWidth: 460 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
-              <h2 style={{ fontWeight: 800, fontSize: 18 }}>Website hinzufügen</h2>
-              <button onClick={() => setShowAdd(false)} style={{ padding: 6, borderRadius: 7, border: '1px solid var(--border)', background: 'transparent', cursor: 'pointer', color: 'var(--text3)', display: 'flex' }}><X size={14} /></button>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 999, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}
+          onClick={e => { if (e.target === e.currentTarget) closeAdd() }}>
+          <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 20, width: '100%', maxWidth: 500, overflow: 'hidden' }}>
+
+            {/* Step indicator */}
+            <div style={{ padding: '20px 24px 0' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+                <h2 style={{ fontWeight: 800, fontSize: 17 }}>
+                  {addStep === 1 ? 'Website hinzufügen' : 'Website verifizieren'}
+                </h2>
+                <button onClick={closeAdd} style={{ padding: 6, borderRadius: 7, border: '1px solid var(--border)', background: 'transparent', cursor: 'pointer', color: 'var(--text3)', display: 'flex' }}><X size={14} /></button>
+              </div>
+              {/* Step pills */}
+              <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
+                {[1, 2].map(s => (
+                  <div key={s} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <div style={{
+                      width: 24, height: 24, borderRadius: '50%', fontSize: 11, fontWeight: 700,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      background: addStep > s ? '#22c55e' : addStep === s ? '#5b6af6' : 'var(--bg)',
+                      border: `2px solid ${addStep > s ? '#22c55e' : addStep === s ? '#5b6af6' : 'var(--border)'}`,
+                      color: addStep >= s ? '#fff' : 'var(--text3)',
+                    }}>
+                      {addStep > s ? <Check size={12} /> : s}
+                    </div>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: addStep === s ? 'var(--text1)' : 'var(--text3)' }}>
+                      {s === 1 ? 'Details' : 'Verifizieren'}
+                    </span>
+                    {s < 2 && <div style={{ width: 24, height: 2, background: addStep > s ? '#22c55e' : 'var(--border)', borderRadius: 1 }} />}
+                  </div>
+                ))}
+              </div>
             </div>
-            <form onSubmit={addSite}>
-              <div style={{ marginBottom: 14 }}>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text2)', marginBottom: 6 }}>Name *</label>
-                <input style={inp} value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Mein Blog" required />
-              </div>
-              <div style={{ marginBottom: 14 }}>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text2)', marginBottom: 6 }}>URL *</label>
-                <input style={inp} type="url" value={form.url} onChange={e => setForm(f => ({ ...f, url: e.target.value }))} placeholder="https://meinblog.de" required />
-              </div>
-              <div style={{ marginBottom: 14 }}>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text2)', marginBottom: 6 }}>Beschreibung</label>
-                <input style={inp} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Optional…" />
-              </div>
-              <div style={{ marginBottom: 24 }}>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text2)', marginBottom: 8 }}>Farbe</label>
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                  {COLORS.map(c => (
-                    <button key={c} type="button" onClick={() => setForm(f => ({ ...f, color: c }))}
-                      style={{ width: 28, height: 28, borderRadius: '50%', background: c, border: form.color === c ? '3px solid #fff' : '3px solid transparent', cursor: 'pointer', outline: 'none', transform: form.color === c ? 'scale(1.2)' : 'scale(1)', transition: 'transform .1s' }} />
-                  ))}
+
+            {/* STEP 1 */}
+            {addStep === 1 && (
+              <form onSubmit={addSite} style={{ padding: '0 24px 24px' }}>
+                <div style={{ marginBottom: 14 }}>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text2)', marginBottom: 6 }}>Name *</label>
+                  <input style={inp} value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Mein Blog" required />
                 </div>
-              </div>
-              {addError && (
-                <div style={{ padding: '9px 13px', borderRadius: 8, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: '#ef4444', fontSize: 13, marginBottom: 16 }}>
-                  {addError}
+                <div style={{ marginBottom: 14 }}>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text2)', marginBottom: 6 }}>URL *</label>
+                  <input style={inp} type="url" value={form.url} onChange={e => setForm(f => ({ ...f, url: e.target.value }))} placeholder="https://meinblog.de" required />
                 </div>
-              )}
-              <div style={{ display: 'flex', gap: 10 }}>
-                <button type="button" onClick={() => setShowAdd(false)} style={{ flex: 1, padding: 11, borderRadius: 9, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text2)', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>Abbrechen</button>
-                <button type="submit" disabled={saving} style={{ flex: 1, padding: 11, borderRadius: 9, background: 'linear-gradient(135deg, #5b6af6, #4346eb)', color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 700, fontFamily: 'inherit', opacity: saving ? 0.7 : 1 }}>
-                  {saving ? 'Erstellen…' : 'Hinzufügen'}
-                </button>
+                <div style={{ marginBottom: 14 }}>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text2)', marginBottom: 6 }}>Beschreibung</label>
+                  <input style={inp} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Optional…" />
+                </div>
+                <div style={{ marginBottom: 24 }}>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text2)', marginBottom: 8 }}>Farbe</label>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    {COLORS.map(c => (
+                      <button key={c} type="button" onClick={() => setForm(f => ({ ...f, color: c }))}
+                        style={{ width: 28, height: 28, borderRadius: '50%', background: c, border: form.color === c ? '3px solid #fff' : '3px solid transparent', cursor: 'pointer', outline: 'none', transform: form.color === c ? 'scale(1.2)' : 'scale(1)', transition: 'transform .1s' }} />
+                    ))}
+                  </div>
+                </div>
+                {addError && (
+                  <div style={{ padding: '9px 13px', borderRadius: 8, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: '#ef4444', fontSize: 13, marginBottom: 16 }}>{addError}</div>
+                )}
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <button type="button" onClick={closeAdd} style={{ flex: 1, padding: 11, borderRadius: 9, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text2)', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>Abbrechen</button>
+                  <button type="submit" disabled={saving} style={{ flex: 1, padding: 11, borderRadius: 9, background: 'linear-gradient(135deg, #5b6af6, #4346eb)', color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 700, fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, opacity: saving ? 0.7 : 1 }}>
+                    {saving ? 'Erstellen…' : <> Weiter <ChevronRight size={14} /></>}
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* STEP 2 */}
+            {addStep === 2 && newSite && (
+              <div style={{ padding: '0 24px 24px' }}>
+
+                {verified ? (
+                  <div style={{ textAlign: 'center', padding: '20px 0 28px' }}>
+                    <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'rgba(34,197,94,0.12)', border: '2px solid rgba(34,197,94,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                      <ShieldCheck size={28} color="#22c55e" />
+                    </div>
+                    <div style={{ fontWeight: 800, fontSize: 18, marginBottom: 6 }}>Verifiziert!</div>
+                    <p style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 24 }}>{newSite.name} wurde erfolgreich bestätigt.</p>
+                    <button onClick={finishAdd} style={{ padding: '11px 28px', borderRadius: 9, background: 'linear-gradient(135deg, #5b6af6, #4346eb)', color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 14, fontFamily: 'inherit' }}>
+                      Zum Dashboard →
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    {/* Explain */}
+                    <div style={{ background: 'rgba(91,106,246,0.06)', border: '1px solid rgba(91,106,246,0.2)', borderRadius: 10, padding: 14, marginBottom: 20, fontSize: 13, color: 'var(--text2)', lineHeight: 1.6 }}>
+                      <strong style={{ color: '#a4bbfd' }}>Nur einmal nötig:</strong> Füge den Meta-Tag in den{' '}
+                      <code style={{ fontFamily: 'Space Mono, monospace', background: 'var(--bg)', padding: '1px 5px', borderRadius: 4, fontSize: 11 }}>&lt;head&gt;</code>{' '}
+                      deiner <strong>Startseite</strong> ein – genau wie bei Google Search Console. Das Tracking-Script kommt einmal in dein <strong>Layout</strong>, damit es auf allen Seiten aktiv ist.
+                    </div>
+
+                    {/* Meta Tag */}
+                    <div style={{ marginBottom: 16 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                        <div style={{ width: 20, height: 20, borderRadius: '50%', background: '#5b6af6', color: '#fff', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>1</div>
+                        <span style={{ fontSize: 13, fontWeight: 700 }}>Meta-Tag in &lt;head&gt; der Startseite</span>
+                      </div>
+                      <CopyBlock label="Einmalig in deine Homepage" value={`<meta name="sitecontrol-site-id" content="${newSite.id}">`} />
+                    </div>
+
+                    {/* Script */}
+                    <div style={{ marginBottom: 20 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                        <div style={{ width: 20, height: 20, borderRadius: '50%', background: '#5b6af6', color: '#fff', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>2</div>
+                        <span style={{ fontSize: 13, fontWeight: 700 }}>Tracking-Script in dein Layout</span>
+                      </div>
+                      <CopyBlock label="Einmalig in Layout / _document / header.php" value={`<script src="${APP_URL}/api/tracker.js?id=${newSite.id}" defer></script>`} />
+                    </div>
+
+                    {/* Verify button */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12 }}>
+                      <div style={{ width: 20, height: 20, borderRadius: '50%', background: '#5b6af6', color: '#fff', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>3</div>
+                      <span style={{ fontSize: 13, fontWeight: 700 }}>Website bestätigen</span>
+                    </div>
+                    <button onClick={verifyNewSite} disabled={verifying} style={{
+                      width: '100%', padding: '12px', borderRadius: 9,
+                      background: 'linear-gradient(135deg, #5b6af6, #4346eb)', color: '#fff',
+                      border: 'none', cursor: verifying ? 'wait' : 'pointer', fontWeight: 700,
+                      fontSize: 14, fontFamily: 'inherit', display: 'flex', alignItems: 'center',
+                      justifyContent: 'center', gap: 8, opacity: verifying ? 0.7 : 1,
+                    }}>
+                      <RefreshCw size={14} style={{ animation: verifying ? 'spin 1s linear infinite' : 'none' }} />
+                      {verifying ? 'Wird geprüft…' : 'Jetzt bestätigen'}
+                    </button>
+
+                    {verifyMsg && !verifyMsg.ok && (
+                      <div style={{ marginTop: 12, padding: '11px 14px', borderRadius: 9, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', color: '#ef4444', fontSize: 13, display: 'flex', gap: 8 }}>
+                        <AlertTriangle size={14} style={{ marginTop: 1, flexShrink: 0 }} />
+                        {verifyMsg.text}
+                      </div>
+                    )}
+
+                    <button onClick={finishAdd} style={{ width: '100%', marginTop: 10, padding: '10px', borderRadius: 9, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text3)', cursor: 'pointer', fontWeight: 600, fontSize: 13, fontFamily: 'inherit' }}>
+                      Jetzt überspringen – später verifizieren
+                    </button>
+                  </>
+                )}
               </div>
-            </form>
+            )}
           </div>
         </div>
       )}
