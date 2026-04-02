@@ -120,7 +120,7 @@ function SiteDetail({ site, onUpdate, onDelete, onClose }: {
       body: JSON.stringify({ id: site.id, ...edit }),
     })
     const d = await r.json()
-    if (r.ok) { onUpdate(d); }
+    if (r.ok) { onUpdate(d) }
     setSaving(false)
   }
 
@@ -152,13 +152,13 @@ function SiteDetail({ site, onUpdate, onDelete, onClose }: {
   }
 
   const TABS: { id: Tab; label: string; Icon: any }[] = [
-    { id: 'overview', label: 'Übersicht', Icon: Globe },
+    { id: 'overview', label: 'Übersicht',  Icon: Globe },
     { id: 'verify',   label: site.verified ? 'Verifiziert ✓' : 'Verifizieren', Icon: site.verified ? ShieldCheck : Shield },
-    { id: 'script',   label: 'Tracking', Icon: Code },
-    { id: 'notes',    label: 'Notizen', Icon: StickyNote },
-    { id: 'history',  label: 'Verlauf', Icon: Clock },
+    { id: 'script',   label: 'Tracking',   Icon: Code },
+    { id: 'notes',    label: 'Notizen',    Icon: StickyNote },
+    { id: 'history',  label: 'Verlauf',    Icon: Clock },
     { id: 'edit',     label: 'Bearbeiten', Icon: Edit2 },
-    { id: 'danger',   label: 'Löschen', Icon: Trash2 },
+    { id: 'danger',   label: 'Löschen',    Icon: Trash2 },
   ]
 
   return (
@@ -218,7 +218,6 @@ function SiteDetail({ site, onUpdate, onDelete, onClose }: {
         {/* OVERVIEW */}
         {tab === 'overview' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            {/* Quick Stats */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
               {[
                 { label: 'Pageviews (7T)', val: stats?.views ?? '—', color: '#5b6af6' },
@@ -231,14 +230,12 @@ function SiteDetail({ site, onUpdate, onDelete, onClose }: {
               ))}
             </div>
 
-            {/* Info */}
             {site.description && (
               <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, padding: '14px 16px', fontSize: 13, color: 'var(--text2)', lineHeight: 1.6 }}>
                 {site.description}
               </div>
             )}
 
-            {/* Quick Links */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 4 }}>Schnell-Links</div>
               {[
@@ -274,7 +271,7 @@ function SiteDetail({ site, onUpdate, onDelete, onClose }: {
                 <span style={{ fontWeight: 700, fontSize: 14, color: '#a4bbfd' }}>Website-Eigentümerschaft bestätigen</span>
               </div>
               <p style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.6 }}>
-                Füge den folgenden Meta-Tag in den <code style={{ fontFamily: 'Space Mono, monospace', background: 'var(--bg)', padding: '1px 5px', borderRadius: 4 }}>&lt;head&gt;</code> deiner Website ein. Damit bestätigst du, dass dir diese Domain gehört.
+                Füge den folgenden Meta-Tag in den <code style={{ fontFamily: 'Space Mono, monospace', background: 'var(--bg)', padding: '1px 5px', borderRadius: 4 }}>&lt;head&gt;</code> deiner Website ein.
               </p>
             </div>
 
@@ -292,9 +289,8 @@ function SiteDetail({ site, onUpdate, onDelete, onClose }: {
                 <span style={{ fontWeight: 700, fontSize: 13 }}>Verifizierung prüfen</span>
               </div>
               <p style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 12 }}>
-                Nachdem du den Tag gespeichert und deployed hast, klicke auf "Jetzt prüfen". Wir rufen deine URL ab und suchen nach dem Tag.
+                Nachdem du den Tag gespeichert und deployed hast, klicke auf "Jetzt prüfen".
               </p>
-
               <button onClick={verify} disabled={verifying} style={{
                 display: 'flex', alignItems: 'center', gap: 8, padding: '11px 20px', borderRadius: 9,
                 background: 'linear-gradient(135deg, #5b6af6, #4346eb)', color: '#fff',
@@ -330,15 +326,12 @@ function SiteDetail({ site, onUpdate, onDelete, onClose }: {
                 <span style={{ fontWeight: 700, fontSize: 14, color: '#22c55e' }}>Tracking-Script</span>
               </div>
               <p style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.6 }}>
-                Das Script läuft auf deiner Website und sendet Daten an SiteControl. Es trackt automatisch Pageviews, SPA-Navigation, ausgehende Links und JS-Fehler. Kein Cookie, DSGVO-freundlich.
+                Kein Cookie, DSGVO-freundlich. Trackt Pageviews, SPA-Navigation, Outbound-Links und JS-Fehler automatisch.
               </p>
             </div>
 
             <div>
               <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 10 }}>Script-Tag einbinden</div>
-              <p style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 12 }}>
-                Füge dieses Tag kurz vor <code style={{ fontFamily: 'Space Mono, monospace', background: 'var(--bg)', padding: '1px 5px', borderRadius: 4 }}>&lt;/body&gt;</code> ein:
-              </p>
               <CopyBlock label="Tracking Script" value={scriptTag} />
             </div>
 
@@ -366,7 +359,6 @@ function SiteDetail({ site, onUpdate, onDelete, onClose }: {
 
             <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 16 }}>
               <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 6 }}>Direkt-Endpunkt</div>
-              <p style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 10 }}>Du kannst auch manuell Events senden:</p>
               <CopyBlock label="POST Endpoint" value={`${APP_URL}/api/track`} />
               <div style={{ fontSize: 11, color: 'var(--text3)', fontFamily: 'Space Mono, monospace', lineHeight: 1.7 }}>
                 {`{ "site_id": "${site.id}", "event_type": "pageview", "path": "/", "referrer": null, "device": "desktop" }`}
@@ -388,21 +380,16 @@ function SiteDetail({ site, onUpdate, onDelete, onClose }: {
               style={{
                 flex: 1, minHeight: 280, padding: '12px 14px', borderRadius: 10, fontSize: 13,
                 background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--text1)',
-                outline: 'none', fontFamily: 'Space Mono, monospace', resize: 'vertical',
-                lineHeight: 1.7,
+                outline: 'none', fontFamily: 'Space Mono, monospace', resize: 'vertical', lineHeight: 1.7,
               }}
             />
-            <button
-              onClick={saveNotes}
-              disabled={notesSaving}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 6, padding: '11px 20px',
-                borderRadius: 9, border: 'none', cursor: notesSaving ? 'wait' : 'pointer',
-                fontWeight: 700, fontSize: 14, fontFamily: 'inherit',
-                background: notesSaved ? '#22c55e' : 'linear-gradient(135deg, #5b6af6, #4346eb)',
-                color: '#fff', transition: 'background .3s', opacity: notesSaving ? 0.7 : 1,
-              }}
-            >
+            <button onClick={saveNotes} disabled={notesSaving} style={{
+              display: 'flex', alignItems: 'center', gap: 6, padding: '11px 20px',
+              borderRadius: 9, border: 'none', cursor: notesSaving ? 'wait' : 'pointer',
+              fontWeight: 700, fontSize: 14, fontFamily: 'inherit',
+              background: notesSaved ? '#22c55e' : 'linear-gradient(135deg, #5b6af6, #4346eb)',
+              color: '#fff', transition: 'background .3s', opacity: notesSaving ? 0.7 : 1,
+            }}>
               {notesSaved ? <><Check size={14} /> Gespeichert</> : notesSaving ? 'Speichern…' : <><Check size={14} /> Notizen speichern</>}
             </button>
           </div>
@@ -422,7 +409,6 @@ function SiteDetail({ site, onUpdate, onDelete, onClose }: {
               <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text3)' }}>
                 <Clock size={28} style={{ display: 'block', margin: '0 auto 10px' }} />
                 <div style={{ fontSize: 13 }}>Noch keine Status-Änderungen aufgezeichnet.</div>
-                <div style={{ fontSize: 11, marginTop: 6 }}>Klicke auf "Laden" um den Verlauf abzurufen.</div>
               </div>
             ) : (
               <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
@@ -448,7 +434,6 @@ function SiteDetail({ site, onUpdate, onDelete, onClose }: {
               </div>
             )}
 
-            {/* Also show verified status */}
             {site.verified && site.verified_at && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 16px', background: 'rgba(34,197,94,0.06)', border: '1px solid rgba(34,197,94,0.2)', borderRadius: 10 }}>
                 <ShieldCheck size={14} color="#22c55e" />
@@ -509,7 +494,7 @@ function SiteDetail({ site, onUpdate, onDelete, onClose }: {
                 <span style={{ fontWeight: 700, fontSize: 14, color: '#ef4444' }}>Gefahrenzone</span>
               </div>
               <p style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.6 }}>
-                Das Löschen dieser Website entfernt alle zugehörigen Daten: Analytics-Events, Todos, Blog-Posts, Changelog und Support-Tickets. Diese Aktion kann nicht rückgängig gemacht werden.
+                Das Löschen dieser Website entfernt alle zugehörigen Daten. Diese Aktion kann nicht rückgängig gemacht werden.
               </p>
             </div>
 
@@ -571,18 +556,14 @@ export default function SitesPage() {
   }
 
   function openAdd() {
-    setAddStep(1)
-    setNewSite(null)
-    setVerifyMsg(null)
-    setVerified(false)
-    setAddError('')
+    setAddStep(1); setNewSite(null); setVerifyMsg(null)
+    setVerified(false); setAddError('')
     setForm({ name: '', url: '', color: '#5b6af6', description: '' })
     setShowAdd(true)
   }
 
   function closeAdd() {
     setShowAdd(false)
-    // If site was created but not verified, still keep it (unverified)
     if (newSite && !verified) {
       setSites(s => s.some(x => x.id === newSite.id) ? s : [...s, newSite])
     }
@@ -590,8 +571,7 @@ export default function SitesPage() {
 
   async function addSite(e: React.FormEvent) {
     e.preventDefault()
-    setSaving(true)
-    setAddError('')
+    setSaving(true); setAddError('')
     const r = await fetch('/api/sites', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(form),
@@ -599,15 +579,12 @@ export default function SitesPage() {
     const d = await r.json()
     if (!r.ok) { setAddError(d.error); setSaving(false); return }
     setSites(s => [...s, d])
-    setNewSite(d)
-    setAddStep(2)
-    setSaving(false)
+    setNewSite(d); setAddStep(2); setSaving(false)
   }
 
   async function verifyNewSite() {
     if (!newSite) return
-    setVerifying(true)
-    setVerifyMsg(null)
+    setVerifying(true); setVerifyMsg(null)
     const r = await fetch('/api/sites/verify', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ site_id: newSite.id }),
@@ -649,7 +626,6 @@ export default function SitesPage() {
       {/* LEFT: Site List */}
       <div style={{ width: selected ? 300 : '100%', flexShrink: 0, borderRight: selected ? '1px solid var(--border)' : 'none', display: 'flex', flexDirection: 'column', overflow: 'hidden', transition: 'width .2s ease' }}>
 
-        {/* List Header */}
         <div style={{ padding: '20px 20px 14px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -664,14 +640,9 @@ export default function SitesPage() {
               <Plus size={14} /> Hinzufügen
             </button>
           </div>
-          <input
-            value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="Website suchen…"
-            style={{ ...inp, padding: '8px 12px' }}
-          />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Website suchen…" style={{ ...inp, padding: '8px 12px' }} />
         </div>
 
-        {/* Site List */}
         <div style={{ flex: 1, overflowY: 'auto', padding: 12 }}>
           {loading ? (
             [1,2,3].map(i => <div key={i} style={{ height: 72, borderRadius: 10, background: 'var(--surface)', border: '1px solid var(--border)', marginBottom: 8 }} />)
@@ -707,9 +678,14 @@ export default function SitesPage() {
                     <Globe size={14} color={site.color || '#5b6af6'} />
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
+                    {/* FIX: title prop not valid on Lucide icons — wrap in span instead */}
                     <div style={{ fontWeight: 700, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 5 }}>
                       {site.name}
-                      {site.verified && <ShieldCheck size={10} color="#22c55e" title="Verifiziert" />}
+                      {site.verified && (
+                        <span title="Verifiziert" style={{ display: 'flex', alignItems: 'center' }}>
+                          <ShieldCheck size={10} color="#22c55e" />
+                        </span>
+                      )}
                     </div>
                     <div style={{ fontSize: 10, color: 'var(--text3)', fontFamily: 'Space Mono, monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {site.url.replace(/^https?:\/\//, '')}
@@ -722,7 +698,6 @@ export default function SitesPage() {
           })}
         </div>
 
-        {/* Footer Stats */}
         <div style={{ padding: '10px 16px', borderTop: '1px solid var(--border)', flexShrink: 0 }}>
           <div style={{ fontSize: 11, color: 'var(--text3)', fontFamily: 'Space Mono, monospace' }}>
             {sites.filter(s => s.status === 'active').length} aktiv · {sites.filter(s => s.status === 'error').length} Fehler · {sites.length} gesamt
@@ -733,52 +708,34 @@ export default function SitesPage() {
       {/* RIGHT: Detail Panel */}
       {selected && (
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
-          <SiteDetail
-            site={selected}
-            onUpdate={handleUpdate}
-            onDelete={handleDelete}
-            onClose={() => setSelected(null)}
-          />
+          <SiteDetail site={selected} onUpdate={handleUpdate} onDelete={handleDelete} onClose={() => setSelected(null)} />
         </div>
       )}
 
-      {/* Add Modal – 2 Steps */}
+      {/* Add Modal */}
       {showAdd && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 999, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}
           onClick={e => { if (e.target === e.currentTarget) closeAdd() }}>
           <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 20, width: '100%', maxWidth: 500, overflow: 'hidden' }}>
 
-            {/* Step indicator */}
             <div style={{ padding: '20px 24px 0' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-                <h2 style={{ fontWeight: 800, fontSize: 17 }}>
-                  {addStep === 1 ? 'Website hinzufügen' : 'Website verifizieren'}
-                </h2>
+                <h2 style={{ fontWeight: 800, fontSize: 17 }}>{addStep === 1 ? 'Website hinzufügen' : 'Website verifizieren'}</h2>
                 <button onClick={closeAdd} style={{ padding: 6, borderRadius: 7, border: '1px solid var(--border)', background: 'transparent', cursor: 'pointer', color: 'var(--text3)', display: 'flex' }}><X size={14} /></button>
               </div>
-              {/* Step pills */}
               <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
                 {[1, 2].map(s => (
                   <div key={s} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <div style={{
-                      width: 24, height: 24, borderRadius: '50%', fontSize: 11, fontWeight: 700,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      background: addStep > s ? '#22c55e' : addStep === s ? '#5b6af6' : 'var(--bg)',
-                      border: `2px solid ${addStep > s ? '#22c55e' : addStep === s ? '#5b6af6' : 'var(--border)'}`,
-                      color: addStep >= s ? '#fff' : 'var(--text3)',
-                    }}>
+                    <div style={{ width: 24, height: 24, borderRadius: '50%', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', background: addStep > s ? '#22c55e' : addStep === s ? '#5b6af6' : 'var(--bg)', border: `2px solid ${addStep > s ? '#22c55e' : addStep === s ? '#5b6af6' : 'var(--border)'}`, color: addStep >= s ? '#fff' : 'var(--text3)' }}>
                       {addStep > s ? <Check size={12} /> : s}
                     </div>
-                    <span style={{ fontSize: 12, fontWeight: 600, color: addStep === s ? 'var(--text1)' : 'var(--text3)' }}>
-                      {s === 1 ? 'Details' : 'Verifizieren'}
-                    </span>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: addStep === s ? 'var(--text1)' : 'var(--text3)' }}>{s === 1 ? 'Details' : 'Verifizieren'}</span>
                     {s < 2 && <div style={{ width: 24, height: 2, background: addStep > s ? '#22c55e' : 'var(--border)', borderRadius: 1 }} />}
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* STEP 1 */}
             {addStep === 1 && (
               <form onSubmit={addSite} style={{ padding: '0 24px 24px' }}>
                 <div style={{ marginBottom: 14 }}>
@@ -802,9 +759,7 @@ export default function SitesPage() {
                     ))}
                   </div>
                 </div>
-                {addError && (
-                  <div style={{ padding: '9px 13px', borderRadius: 8, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: '#ef4444', fontSize: 13, marginBottom: 16 }}>{addError}</div>
-                )}
+                {addError && <div style={{ padding: '9px 13px', borderRadius: 8, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: '#ef4444', fontSize: 13, marginBottom: 16 }}>{addError}</div>}
                 <div style={{ display: 'flex', gap: 10 }}>
                   <button type="button" onClick={closeAdd} style={{ flex: 1, padding: 11, borderRadius: 9, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text2)', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>Abbrechen</button>
                   <button type="submit" disabled={saving} style={{ flex: 1, padding: 11, borderRadius: 9, background: 'linear-gradient(135deg, #5b6af6, #4346eb)', color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 700, fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, opacity: saving ? 0.7 : 1 }}>
@@ -814,10 +769,8 @@ export default function SitesPage() {
               </form>
             )}
 
-            {/* STEP 2 */}
             {addStep === 2 && newSite && (
               <div style={{ padding: '0 24px 24px' }}>
-
                 {verified ? (
                   <div style={{ textAlign: 'center', padding: '20px 0 28px' }}>
                     <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'rgba(34,197,94,0.12)', border: '2px solid rgba(34,197,94,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
@@ -831,54 +784,37 @@ export default function SitesPage() {
                   </div>
                 ) : (
                   <>
-                    {/* Explain */}
                     <div style={{ background: 'rgba(91,106,246,0.06)', border: '1px solid rgba(91,106,246,0.2)', borderRadius: 10, padding: 14, marginBottom: 20, fontSize: 13, color: 'var(--text2)', lineHeight: 1.6 }}>
-                      <strong style={{ color: '#a4bbfd' }}>Nur einmal nötig:</strong> Füge den Meta-Tag in den{' '}
-                      <code style={{ fontFamily: 'Space Mono, monospace', background: 'var(--bg)', padding: '1px 5px', borderRadius: 4, fontSize: 11 }}>&lt;head&gt;</code>{' '}
-                      deiner <strong>Startseite</strong> ein – genau wie bei Google Search Console. Das Tracking-Script kommt einmal in dein <strong>Layout</strong>, damit es auf allen Seiten aktiv ist.
+                      <strong style={{ color: '#a4bbfd' }}>Nur einmal nötig:</strong> Meta-Tag in den <code style={{ fontFamily: 'Space Mono, monospace', background: 'var(--bg)', padding: '1px 5px', borderRadius: 4, fontSize: 11 }}>&lt;head&gt;</code> der Startseite, Tracking-Script einmalig ins Layout.
                     </div>
-
-                    {/* Meta Tag */}
                     <div style={{ marginBottom: 16 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
                         <div style={{ width: 20, height: 20, borderRadius: '50%', background: '#5b6af6', color: '#fff', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>1</div>
-                        <span style={{ fontSize: 13, fontWeight: 700 }}>Meta-Tag in &lt;head&gt; der Startseite</span>
+                        <span style={{ fontSize: 13, fontWeight: 700 }}>Meta-Tag in &lt;head&gt;</span>
                       </div>
-                      <CopyBlock label="Einmalig in deine Homepage" value={`<meta name="sitecontrol-site-id" content="${newSite.id}">`} />
+                      <CopyBlock label="Homepage &lt;head&gt;" value={`<meta name="sitecontrol-site-id" content="${newSite.id}">`} />
                     </div>
-
-                    {/* Script */}
                     <div style={{ marginBottom: 20 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
                         <div style={{ width: 20, height: 20, borderRadius: '50%', background: '#5b6af6', color: '#fff', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>2</div>
-                        <span style={{ fontSize: 13, fontWeight: 700 }}>Tracking-Script in dein Layout</span>
+                        <span style={{ fontSize: 13, fontWeight: 700 }}>Tracking-Script ins Layout</span>
                       </div>
-                      <CopyBlock label="Einmalig in Layout / _document / header.php" value={`<script src="${APP_URL}/api/tracker.js?id=${newSite.id}" defer></script>`} />
+                      <CopyBlock label="Layout / _document" value={`<script src="${APP_URL}/api/tracker.js?id=${newSite.id}" defer></script>`} />
                     </div>
-
-                    {/* Verify button */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12 }}>
                       <div style={{ width: 20, height: 20, borderRadius: '50%', background: '#5b6af6', color: '#fff', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>3</div>
                       <span style={{ fontSize: 13, fontWeight: 700 }}>Website bestätigen</span>
                     </div>
-                    <button onClick={verifyNewSite} disabled={verifying} style={{
-                      width: '100%', padding: '12px', borderRadius: 9,
-                      background: 'linear-gradient(135deg, #5b6af6, #4346eb)', color: '#fff',
-                      border: 'none', cursor: verifying ? 'wait' : 'pointer', fontWeight: 700,
-                      fontSize: 14, fontFamily: 'inherit', display: 'flex', alignItems: 'center',
-                      justifyContent: 'center', gap: 8, opacity: verifying ? 0.7 : 1,
-                    }}>
+                    <button onClick={verifyNewSite} disabled={verifying} style={{ width: '100%', padding: '12px', borderRadius: 9, background: 'linear-gradient(135deg, #5b6af6, #4346eb)', color: '#fff', border: 'none', cursor: verifying ? 'wait' : 'pointer', fontWeight: 700, fontSize: 14, fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, opacity: verifying ? 0.7 : 1 }}>
                       <RefreshCw size={14} style={{ animation: verifying ? 'spin 1s linear infinite' : 'none' }} />
                       {verifying ? 'Wird geprüft…' : 'Jetzt bestätigen'}
                     </button>
-
                     {verifyMsg && !verifyMsg.ok && (
                       <div style={{ marginTop: 12, padding: '11px 14px', borderRadius: 9, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', color: '#ef4444', fontSize: 13, display: 'flex', gap: 8 }}>
                         <AlertTriangle size={14} style={{ marginTop: 1, flexShrink: 0 }} />
                         {verifyMsg.text}
                       </div>
                     )}
-
                     <button onClick={finishAdd} style={{ width: '100%', marginTop: 10, padding: '10px', borderRadius: 9, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text3)', cursor: 'pointer', fontWeight: 600, fontSize: 13, fontFamily: 'inherit' }}>
                       Jetzt überspringen – später verifizieren
                     </button>
