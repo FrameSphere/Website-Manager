@@ -60,6 +60,13 @@ export default function SettingsPage() {
   }
   const isPro = profile?.plan_id === 'pro'
   const firstName = profile?.full_name?.split(' ')[0] || user?.email?.split('@')[0] || 'User'
+  const planEndsAt = profile?.plan_ends_at
+
+  async function openPortal() {
+    const r = await fetch('/api/stripe/portal', { method: 'POST' })
+    const d = await r.json()
+    if (d.url) window.location.href = d.url
+  }
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', padding: '28px 32px' }}>
@@ -187,6 +194,19 @@ export default function SettingsPage() {
                       {f}
                     </div>
                   ))}
+                  {planEndsAt && (
+                    <div style={{ marginTop: 8, padding: '8px 12px', borderRadius: 8, background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)', fontSize: 12, color: '#f59e0b' }}>
+                      Pro läuft bis {new Date(planEndsAt).toLocaleDateString('de-DE')}
+                    </div>
+                  )}
+                  <button onClick={openPortal} style={{
+                    marginTop: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                    padding: '10px 20px', borderRadius: 9, border: '1px solid var(--border)',
+                    background: 'var(--bg)', color: 'var(--text2)', cursor: 'pointer',
+                    fontWeight: 600, fontSize: 13, fontFamily: 'inherit',
+                  }}>
+                    Abo verwalten →
+                  </button>
                 </div>
               ) : (
                 <>
