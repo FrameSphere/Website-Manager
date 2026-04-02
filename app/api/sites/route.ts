@@ -55,9 +55,20 @@ export async function PATCH(req: Request) {
   const { id, ...updates } = body
   if (!id) return NextResponse.json({ error: 'id fehlt' }, { status: 400 })
 
-  const allowed = ['name', 'url', 'color', 'description', 'status']
+  const allowed = ['name', 'url', 'color', 'description', 'status', 'notes']
   const filtered = Object.fromEntries(Object.entries(updates).filter(([k]) => allowed.includes(k)))
   filtered.updated_at = new Date().toISOString()
+
+  // If status changed, log to history
+  if (updates.status) {
+    const { data: current } = await supabase.from('sites').select('status').eq('id', id).single()
+    if (current && current.status !== updates.status) {
+      await supabase.from('site_status_history').insert({
+        site_id: id, owner_id: user.id,
+        old_status: current.status, new_status: updates.status,
+      })
+    }
+  }
 
   const { data, error } = await supabase
     .from('sites').update(filtered)

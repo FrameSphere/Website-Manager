@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from 'react'
 import {
   Globe, BarChart2, FileText, Plus, X, Check, Copy, RefreshCw,
   ExternalLink, Trash2, Edit2, Shield, ShieldCheck, Code, Settings,
-  AlertTriangle, ChevronRight, Zap,
+  AlertTriangle, ChevronRight, Zap, StickyNote, Clock,
 } from 'lucide-react'
 
 const COLORS = ['#5b6af6','#22c55e','#f59e0b','#ef4444','#a78bfa','#60a5fa','#f97316','#34d399']
@@ -13,11 +13,17 @@ const STATUS_OPTS = [
   { val: 'error',   label: 'Fehler',   color: '#ef4444' },
 ]
 
-type Tab = 'overview' | 'verify' | 'script' | 'edit' | 'danger'
+type Tab = 'overview' | 'verify' | 'script' | 'notes' | 'history' | 'edit' | 'danger'
+
+interface StatusHistory {
+  id: string; old_status: string; new_status: string; created_at: string
+}
 
 interface Site {
   id: string; name: string; url: string; slug: string
-  color: string; status: string; description: string; created_at: string
+  color: string; status: string; description: string
+  notes: string; verified: boolean; verified_at: string | null
+  created_at: string
 }
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://site-control-nine.vercel.app'
@@ -61,6 +67,11 @@ function SiteDetail({ site, onUpdate, onDelete, onClose }: {
 }) {
   const [tab, setTab] = useState<Tab>('overview')
   const [edit, setEdit] = useState({ name: site.name, url: site.url, color: site.color, description: site.description || '', status: site.status })
+  const [notes, setNotes] = useState(site.notes || '')
+  const [notesSaving, setNotesSaving] = useState(false)
+  const [notesSaved, setNotesSaved] = useState(false)
+  const [history, setHistory] = useState<StatusHistory[]>([])
+  const [historyLoading, setHistoryLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [verifying, setVerifying] = useState(false)
   const [verifyMsg, setVerifyMsg] = useState<{ ok: boolean; text: string } | null>(null)
@@ -69,9 +80,10 @@ function SiteDetail({ site, onUpdate, onDelete, onClose }: {
 
   useEffect(() => {
     setEdit({ name: site.name, url: site.url, color: site.color, description: site.description || '', status: site.status })
+    setNotes(site.notes || '')
     setTab('overview')
     setVerifyMsg(null)
-    // Load quick stats
+    setHistory([])
     fetch(`/api/analytics?days=7&site_id=${site.id}`)
       .then(r => r.json())
       .then(d => {
@@ -83,6 +95,22 @@ function SiteDetail({ site, onUpdate, onDelete, onClose }: {
         }
       }).catch(() => {})
   }, [site.id])
+
+  async function loadHistory() {
+    setHistoryLoading(true)
+    const r = await fetch(`/api/sites/history?site_id=${site.id}`)
+    const d = await r.json()
+    setHistory(Array.isArray(d) ? d : [])
+    setHistoryLoading(false)
+  }
+
+  async function saveNotes() {
+    setNotesSaving(true)
+    const r = await fetch('/api/sites', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: site.id, notes }) })
+    const d = await r.json()
+    if (r.ok) { onUpdate(d); setNotesSaved(true); setTimeout(() => setNotesSaved(false), 2000) }
+    setNotesSaving(false)
+  }
 
   async function saveEdit(e: React.FormEvent) {
     e.preventDefault()
@@ -125,8 +153,10 @@ function SiteDetail({ site, onUpdate, onDelete, onClose }: {
 
   const TABS: { id: Tab; label: string; Icon: any }[] = [
     { id: 'overview', label: 'Übersicht', Icon: Globe },
-    { id: 'verify',   label: 'Verifizieren', Icon: Shield },
+    { id: 'verify',   label: site.verified ? 'Verifiziert ✓' : 'Verifizieren', Icon: site.verified ? ShieldCheck : Shield },
     { id: 'script',   label: 'Tracking', Icon: Code },
+    { id: 'notes',    label: 'Notizen', Icon: StickyNote },
+    { id: 'history',  label: 'Verlauf', Icon: Clock },
     { id: 'edit',     label: 'Bearbeiten', Icon: Edit2 },
     { id: 'danger',   label: 'Löschen', Icon: Trash2 },
   ]
@@ -342,6 +372,89 @@ function SiteDetail({ site, onUpdate, onDelete, onClose }: {
                 {`{ "site_id": "${site.id}", "event_type": "pageview", "path": "/", "referrer": null, "device": "desktop" }`}
               </div>
             </div>
+          </div>
+        )}
+
+        {/* NOTES */}
+        {tab === 'notes' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14, height: '100%' }}>
+            <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.6 }}>
+              Private Notizen zu dieser Website – nur du siehst das.
+            </div>
+            <textarea
+              value={notes}
+              onChange={e => setNotes(e.target.value)}
+              placeholder="Zugangsdaten, Todos, Ideen, Deployment-Infos…"
+              style={{
+                flex: 1, minHeight: 280, padding: '12px 14px', borderRadius: 10, fontSize: 13,
+                background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--text1)',
+                outline: 'none', fontFamily: 'Space Mono, monospace', resize: 'vertical',
+                lineHeight: 1.7,
+              }}
+            />
+            <button
+              onClick={saveNotes}
+              disabled={notesSaving}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6, padding: '11px 20px',
+                borderRadius: 9, border: 'none', cursor: notesSaving ? 'wait' : 'pointer',
+                fontWeight: 700, fontSize: 14, fontFamily: 'inherit',
+                background: notesSaved ? '#22c55e' : 'linear-gradient(135deg, #5b6af6, #4346eb)',
+                color: '#fff', transition: 'background .3s', opacity: notesSaving ? 0.7 : 1,
+              }}
+            >
+              {notesSaved ? <><Check size={14} /> Gespeichert</> : notesSaving ? 'Speichern…' : <><Check size={14} /> Notizen speichern</>}
+            </button>
+          </div>
+        )}
+
+        {/* HISTORY */}
+        {tab === 'history' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ fontSize: 13, color: 'var(--text2)' }}>Status-Änderungen dieser Website</div>
+              <button onClick={loadHistory} disabled={historyLoading} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 12px', borderRadius: 7, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text2)', cursor: 'pointer', fontSize: 12, fontFamily: 'inherit' }}>
+                <RefreshCw size={12} style={{ animation: historyLoading ? 'spin 1s linear infinite' : 'none' }} /> Laden
+              </button>
+            </div>
+
+            {history.length === 0 && !historyLoading ? (
+              <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text3)' }}>
+                <Clock size={28} style={{ display: 'block', margin: '0 auto 10px' }} />
+                <div style={{ fontSize: 13 }}>Noch keine Status-Änderungen aufgezeichnet.</div>
+                <div style={{ fontSize: 11, marginTop: 6 }}>Klicke auf "Laden" um den Verlauf abzurufen.</div>
+              </div>
+            ) : (
+              <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
+                {history.map((h, i) => {
+                  const oldColor = STATUS_OPTS.find(o => o.val === h.old_status)?.color || '#6b7280'
+                  const newColor = STATUS_OPTS.find(o => o.val === h.new_status)?.color || '#22c55e'
+                  const oldLabel = STATUS_OPTS.find(o => o.val === h.old_status)?.label || h.old_status
+                  const newLabel = STATUS_OPTS.find(o => o.val === h.new_status)?.label || h.new_status
+                  return (
+                    <div key={h.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 16px', borderBottom: i < history.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                      <Clock size={12} color="var(--text3)" style={{ flexShrink: 0 }} />
+                      <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 5, background: oldColor + '18', color: oldColor, fontWeight: 700 }}>{oldLabel}</span>
+                        <span style={{ fontSize: 11, color: 'var(--text3)' }}>→</span>
+                        <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 5, background: newColor + '18', color: newColor, fontWeight: 700 }}>{newLabel}</span>
+                      </div>
+                      <span style={{ fontSize: 10, color: 'var(--text3)', fontFamily: 'Space Mono, monospace', flexShrink: 0 }}>
+                        {new Date(h.created_at).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+
+            {/* Also show verified status */}
+            {site.verified && site.verified_at && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 16px', background: 'rgba(34,197,94,0.06)', border: '1px solid rgba(34,197,94,0.2)', borderRadius: 10 }}>
+                <ShieldCheck size={14} color="#22c55e" />
+                <span style={{ fontSize: 13, color: '#22c55e', fontWeight: 600 }}>Verifiziert am {new Date(site.verified_at).toLocaleDateString('de-DE')}</span>
+              </div>
+            )}
           </div>
         )}
 
@@ -594,7 +707,10 @@ export default function SitesPage() {
                     <Globe size={14} color={site.color || '#5b6af6'} />
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 700, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{site.name}</div>
+                    <div style={{ fontWeight: 700, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 5 }}>
+                      {site.name}
+                      {site.verified && <ShieldCheck size={10} color="#22c55e" title="Verifiziert" />}
+                    </div>
                     <div style={{ fontSize: 10, color: 'var(--text3)', fontFamily: 'Space Mono, monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {site.url.replace(/^https?:\/\//, '')}
                     </div>

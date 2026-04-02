@@ -60,12 +60,29 @@ CREATE TABLE IF NOT EXISTS sites (
   color TEXT DEFAULT '#5b6af6',
   status TEXT DEFAULT 'active',      -- 'active' | 'paused' | 'error'
   description TEXT,
+  notes TEXT,
+  verified BOOLEAN DEFAULT false,
+  verified_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 
 ALTER TABLE sites ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can CRUD own sites" ON sites FOR ALL USING (auth.uid() = owner_id);
+
+-- ── Site Status History ────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS site_status_history (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  site_id UUID NOT NULL REFERENCES sites(id) ON DELETE CASCADE,
+  owner_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  old_status TEXT,
+  new_status TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE site_status_history ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can read own history" ON site_status_history FOR ALL USING (auth.uid() = owner_id);
+CREATE INDEX IF NOT EXISTS idx_status_history_site ON site_status_history(site_id, created_at DESC);
 
 -- ── Team members ───────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS team_members (

@@ -127,6 +127,7 @@ export default function AnalyticsPage() {
   const [filterSite, setFilterSite] = useState('')
   const [days, setDays] = useState(7)
   const [lastRefresh, setLastRefresh] = useState(new Date())
+  const [liveCount, setLiveCount] = useState<number | null>(null)
 
   const loadData = useCallback(async () => {
     setLoading(true)
@@ -142,6 +143,24 @@ export default function AnalyticsPage() {
   }, [days, filterSite])
 
   useEffect(() => { loadData() }, [loadData])
+
+  // Live visitor polling every 30s (events in last 5 min)
+  useEffect(() => {
+    async function pollLive() {
+      const since = new Date(Date.now() - 5 * 60 * 1000).toISOString()
+      const url = `/api/analytics?days=1${filterSite ? `&site_id=${filterSite}` : ''}`
+      const r = await fetch(url).catch(() => null)
+      if (!r) return
+      const d = await r.json().catch(() => [])
+      if (Array.isArray(d)) {
+        const live = d.filter((e: any) => e.event_type === 'pageview' && e.created_at > since).length
+        setLiveCount(live)
+      }
+    }
+    pollLive()
+    const interval = setInterval(pollLive, 30000)
+    return () => clearInterval(interval)
+  }, [filterSite])
 
   // Derived data
   const pageviews = events.filter(e => e.event_type === 'pageview')
@@ -235,6 +254,17 @@ export default function AnalyticsPage() {
         </div>
       ) : (
         <>
+          {/* Live Counter Banner */}
+          {liveCount !== null && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', borderRadius: 10, background: liveCount > 0 ? 'rgba(34,197,94,0.08)' : 'var(--surface)', border: `1px solid ${liveCount > 0 ? 'rgba(34,197,94,0.3)' : 'var(--border)'}`, marginBottom: 16 }}>
+              <div style={{ width: 8, height: 8, borderRadius: '50%', background: liveCount > 0 ? '#22c55e' : '#6b7280', boxShadow: liveCount > 0 ? '0 0 0 3px rgba(34,197,94,0.2)' : 'none', animation: liveCount > 0 ? 'pulse 2s infinite' : 'none', flexShrink: 0 }} />
+              <span style={{ fontWeight: 700, fontSize: 14, color: liveCount > 0 ? '#22c55e' : 'var(--text3)' }}>
+                {liveCount > 0 ? `${liveCount} aktiver Besucher` : 'Gerade niemand online'}
+              </span>
+              <span style={{ fontSize: 11, color: 'var(--text3)', fontFamily: 'Space Mono, monospace' }}>letzte 5 Min · aktualisiert alle 30s</span>
+            </div>
+          )}
+
           {/* KPI Strip */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 12, marginBottom: 20 }}>
             {[
