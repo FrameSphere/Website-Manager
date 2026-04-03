@@ -1219,8 +1219,8 @@ function EmbedPageContent() {
             {feature === 'support' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 24 }}>
                 {[
-                  { id: 'widget', Icon: Smartphone, label: 'Chat-Widget (empfohlen)', desc: '💬-Button der aufklappt wenn der User draufklickt. Auf jeder Seite einsetzbar — ein Script vor </body> reicht.' },
-                  { id: 'page', Icon: Globe, label: 'Eigene Support-Seite', desc: 'Komplette HTML-Seite als support.html oder support.js (Cloudflare Pages).' },
+                  { id: 'html', Icon: Smartphone, label: 'Chat-Widget (empfohlen)', desc: '💬-Button der aufklappt wenn der User draufklickt. Auf jeder Seite einsetzbar — ein Script vor </body> reicht.' },
+                  { id: 'cloudflare', Icon: Globe, label: 'Eigene Support-Seite', desc: 'Komplette HTML-Seite als support.html oder support.js (Cloudflare Pages).' },
                 ].map(v => (
                   <label key={v.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 16, padding: '18px 20px', borderRadius: 12, border: `2px solid ${platform === v.id ? 'rgba(34,197,94,.5)' : 'var(--border)'}`, background: platform === v.id ? 'rgba(34,197,94,.05)' : 'var(--surface)', cursor: 'pointer', transition: 'all .15s' }}>
                     <input type="radio" name="variant" value={v.id} checked={platform === v.id} onChange={() => setPlatform(v.id as any)} style={{ display: 'none' }} />
