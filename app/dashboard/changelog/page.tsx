@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { Layers, Star } from 'lucide-react'
+import { Layers, Star, Settings } from 'lucide-react'
 
 interface Entry { id: string; version: string; title: string; description: string; type: string; published: boolean; created_at: string; sites?: { name: string; color: string } }
 interface Site { id: string; name: string; color: string }
@@ -30,8 +30,7 @@ export default function ChangelogPage() {
   }
 
   async function addEntry(e: React.FormEvent) {
-    e.preventDefault()
-    setSaving(true)
+    e.preventDefault(); setSaving(true)
     const r = await fetch('/api/changelog', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) })
     const d = await r.json()
     if (r.ok) { setEntries(prev => [d, ...prev]); setShowAdd(false); setForm({ site_id: '', version: '', title: '', description: '', type: 'feature', published: false }) }
@@ -55,10 +54,12 @@ export default function ChangelogPage() {
   if (!isPro) return (
     <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 40 }}>
       <div style={{ textAlign: 'center', maxWidth: 400 }}>
-        <Layers size={48} color="var(--text3)" style={{ marginBottom: 16 }} />
+        <Layers size={48} color="var(--text3)" style={{ display: 'block', margin: '0 auto 16px' }} />
         <h2 style={{ fontWeight: 900, fontSize: 22, marginBottom: 8 }}>Changelog ist Pro</h2>
-        <p style={{ color: 'var(--text2)', fontSize: 15, lineHeight: 1.6, marginBottom: 28 }}>Versionierte Einträge mit Feature/Fix/Breaking-Tags für alle Websites.</p>
-        <a href="/dashboard/upgrade" style={{ display: 'inline-flex', alignItems:'center', gap:6, padding: '12px 28px', borderRadius: 10, background: 'linear-gradient(135deg, #5b6af6, #4346eb)', color: '#fff', textDecoration: 'none', fontWeight: 700, fontSize: 15 }}><Star size={14} fill="#fff" color="#fff" /> Jetzt upgraden</a>
+        <p style={{ color: 'var(--text2)', fontSize: 15, lineHeight: 1.6, marginBottom: 28 }}>Versionierte Einträge, Widgets und SSR-Seiten.</p>
+        <a href="/dashboard/upgrade" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '12px 28px', borderRadius: 10, background: 'linear-gradient(135deg, #5b6af6, #4346eb)', color: '#fff', textDecoration: 'none', fontWeight: 700, fontSize: 15 }}>
+          <Star size={14} fill="#fff" color="#fff" /> Jetzt upgraden
+        </a>
       </div>
     </div>
   )
@@ -67,12 +68,17 @@ export default function ChangelogPage() {
     <div style={{ flex: 1, overflowY: 'auto', padding: '24px 28px' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
         <div>
-          <h1 style={{ fontWeight: 900, fontSize: 22, marginBottom: 4, display:'flex', alignItems:'center', gap:8 }}><Layers size={20} /> Changelog</h1>
-          <div style={{ fontSize: 12, color: 'var(--text3)', fontFamily: 'Space Mono, monospace' }}>{entries.filter(e => e.published).length} veröffentlicht · {entries.filter(e => !e.published).length} Entwürfe</div>
+          <h1 style={{ fontWeight: 900, fontSize: 22, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 8 }}><Layers size={20} /> Changelog</h1>
+          <div style={{ fontSize: 12, color: 'var(--text3)', fontFamily: 'Space Mono, monospace' }}>{entries.filter(e => e.published).length} live · {entries.filter(e => !e.published).length} Entwürfe</div>
         </div>
-        <button onClick={() => setShowAdd(true)} style={{ padding: '10px 20px', borderRadius: 9, background: 'linear-gradient(135deg, #5b6af6, #4346eb)', color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 14, fontFamily: 'inherit', boxShadow: '0 4px 14px rgba(91,106,246,0.3)' }}>
-          + Neuer Eintrag
-        </button>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <a href="/dashboard/changelog/setup" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 16px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text2)', textDecoration: 'none', fontWeight: 600, fontSize: 13 }}>
+            <Settings size={13} /> Einbindung & Setup
+          </a>
+          <button onClick={() => setShowAdd(true)} style={{ padding: '10px 20px', borderRadius: 9, background: 'linear-gradient(135deg, #5b6af6, #4346eb)', color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 14, fontFamily: 'inherit' }}>
+            + Neuer Eintrag
+          </button>
+        </div>
       </div>
 
       {showAdd && (
@@ -129,7 +135,7 @@ export default function ChangelogPage() {
 
       {loading ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {[1,2,3].map(i => <div key={i} style={{ height: 80, borderRadius: 12, background: 'var(--surface)', border: '1px solid var(--border)' }} className="skeleton" />)}
+          {[1,2,3].map(i => <div key={i} style={{ height: 80, borderRadius: 12, background: 'var(--surface)', border: '1px solid var(--border)' }} />)}
         </div>
       ) : entries.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text3)' }}>
@@ -148,7 +154,7 @@ export default function ChangelogPage() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 4 }}>
                   <span style={{ fontWeight: 800, fontSize: 15 }}>{entry.title}</span>
                   <span style={{ fontSize: 11, color: 'var(--text3)', fontFamily: 'Space Mono, monospace' }}>v{entry.version}</span>
-                  {entry.sites && <span style={{ fontSize: 11, color: entry.sites.color, fontFamily: 'Space Mono, monospace' }}>{entry.sites.name}</span>}
+                  {entry.sites && <span style={{ fontSize: 11, color: entry.sites.color }}>{entry.sites.name}</span>}
                 </div>
                 {entry.description && <p style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.5 }}>{entry.description}</p>}
                 <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 6, fontFamily: 'Space Mono, monospace' }}>{new Date(entry.created_at).toLocaleDateString('de-DE')}</div>
