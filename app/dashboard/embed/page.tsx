@@ -1381,7 +1381,7 @@ function EmbedPageContent() {
             )}
 
             {/* SUPPORT STEPS */}
-            {feature === 'support' && platform === 'widget' && (
+            {feature === 'support' && platform === 'html' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 {[
                   { n: 1, title: 'Script kopieren oder herunterladen', body: <><p style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 12, lineHeight: 1.7 }}>Kopiere dieses Script und füge es auf jeder Seite deiner Website <strong>vor <code style={{ fontFamily: 'Space Mono, monospace', background: 'var(--bg)', padding: '1px 5px', borderRadius: 3, fontSize: 11 }}>&lt;/body&gt;</code></strong> ein. In WordPress, in dein Theme, in deinen Layout-Header — überall.</p><CopyBlock label="support-widget.js (vor </body>)" code={codes.support.widget} filename="support-widget.js" /></> },
@@ -1407,7 +1407,7 @@ function EmbedPageContent() {
               </div>
             )}
 
-            {feature === 'support' && platform === 'page' && (
+            {feature === 'support' && platform === 'cloudflare' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 {[
                   { n: 1, title: 'support.html herunterladen', body: <><p style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 12, lineHeight: 1.7 }}>Lade die fertige HTML-Seite herunter und füge sie in dein Projekt ein. Für Cloudflare Pages unter <code style={{ fontFamily: 'Space Mono, monospace', background: 'var(--bg)', padding: '1px 5px', borderRadius: 3, fontSize: 11 }}>public/support.html</code> oder als Pages Function.</p><CopyBlock label="support.html" code={codes.support.page} filename="support.html" /></> },
