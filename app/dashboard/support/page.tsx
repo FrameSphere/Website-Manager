@@ -69,6 +69,9 @@ export default function SupportPage() {
       <div style={{ width: 340, flexShrink: 0, borderRight: '1px solid var(--border)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <div style={{ padding: '20px 18px 14px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
           <h1 style={{ fontWeight: 900, fontSize: 18, marginBottom: 12, display:'flex', alignItems:'center', gap:8 }}><LifeBuoy size={18} /> Support-Tickets</h1>
+          <a href="/dashboard/embed?feature=support" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: 8, border: '1px solid rgba(34,197,94,.3)', background: 'rgba(34,197,94,.07)', color: '#22c55e', textDecoration: 'none', fontWeight: 600, fontSize: 12, marginBottom: 10 }}>
+            🔗 Support auf Website einbinden
+          </a>
           <select style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text2)', fontSize: 13, fontFamily: 'inherit', cursor: 'pointer' }}
             value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
             <option value="">Alle ({tickets.length})</option>

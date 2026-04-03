@@ -7,7 +7,7 @@ import type { User } from '@supabase/supabase-js'
 import {
   LayoutDashboard, Globe, CheckSquare, FileText,
   Layers, LifeBuoy, BarChart2, Pin, Settings,
-  Star, LogOut, ChevronLeft, ChevronRight,
+  Star, LogOut, ChevronLeft, ChevronRight, Code2,
 } from 'lucide-react'
 
 const NAV_ITEMS = [
@@ -19,6 +19,7 @@ const NAV_ITEMS = [
   { href: '/dashboard/support',   label: 'Support',        Icon: LifeBuoy,        pro: true  },
   { href: '/dashboard/analytics', label: 'Analytics',      Icon: BarChart2,       pro: false },
   { href: '/dashboard/pinboard',  label: 'Pinboard',       Icon: Pin,             pro: false },
+  { href: '/dashboard/embed',     label: 'Einbinden',      Icon: Code2,           pro: false },
   { href: '/dashboard/settings',  label: 'Einstellungen',  Icon: Settings,        pro: false },
 ]
 

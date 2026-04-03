@@ -82,8 +82,8 @@ export default function BlogPage() {
           </div>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
-          <a href="/dashboard/blog/setup" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 16px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text2)', textDecoration: 'none', fontWeight: 600, fontSize: 13 }}>
-            <Settings size={13} /> Einbindung & Setup
+          <a href="/dashboard/blog/setup" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 16px', borderRadius: 9, border: '1px solid rgba(91,106,246,.3)', background: 'rgba(91,106,246,.08)', color: '#7e93fb', textDecoration: 'none', fontWeight: 600, fontSize: 13 }}>
+            <Settings size={13} /> Blog einbinden
           </a>
           <button onClick={() => setShowAdd(true)} style={{ padding: '10px 20px', borderRadius: 9, background: 'linear-gradient(135deg, #5b6af6, #4346eb)', color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 14, fontFamily: 'inherit' }}>
             + Neuer Post
