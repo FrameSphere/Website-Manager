@@ -9,6 +9,11 @@ export const metadata: Metadata = {
   description: 'Das zentrale Dashboard für alle deine Websites. Blog-Management, Analytics, Support-Tickets, Todos und mehr – in einer App.',
   keywords: ['website management', 'dashboard', 'blog management', 'analytics', 'support tickets', 'SaaS'],
   authors: [{ name: 'SiteControl' }],
+  icons: {
+    icon: '/icon.svg',
+    shortcut: '/icon.svg',
+    apple: '/icon.svg',
+  },
   openGraph: {
     type: 'website',
     locale: 'de_DE',

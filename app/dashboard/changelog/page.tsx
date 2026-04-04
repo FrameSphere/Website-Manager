@@ -72,7 +72,7 @@ export default function ChangelogPage() {
           <div style={{ fontSize: 12, color: 'var(--text3)', fontFamily: 'Space Mono, monospace' }}>{entries.filter(e => e.published).length} live · {entries.filter(e => !e.published).length} Entwürfe</div>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
-          <a href="/dashboard/changelog/setup" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 16px', borderRadius: 9, border: '1px solid rgba(245,158,11,.3)', background: 'rgba(245,158,11,.07)', color: '#f59e0b', textDecoration: 'none', fontWeight: 600, fontSize: 13 }}>
+          <a href="/dashboard/embed?feature=changelog" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 16px', borderRadius: 9, border: '1px solid rgba(245,158,11,.3)', background: 'rgba(245,158,11,.07)', color: '#f59e0b', textDecoration: 'none', fontWeight: 600, fontSize: 13 }}>
             <Settings size={13} /> Changelog einbinden
           </a>
           <button onClick={() => setShowAdd(true)} style={{ padding: '10px 20px', borderRadius: 9, background: 'linear-gradient(135deg, #5b6af6, #4346eb)', color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 14, fontFamily: 'inherit' }}>

@@ -709,7 +709,7 @@ export async function onRequestGet() {
       <span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:\${col}18;color:\${col};border:1px solid \${col}30;white-space:nowrap;margin-top:3px">\${lbl}</span>
       <div style="flex:1">
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:5px">
-          <strong style="font-size:15px;color:#e8eaf0;font-weight:700">\${esc(e.title)}</strong>
+          <a href="/changelog/\${e.id}" style="font-size:15px;color:#e8eaf0;font-weight:700;text-decoration:none">\${esc(e.title)}</a>
           \${e.version ? \`<span style="font-size:11px;color:#5a6280;font-family:monospace">v\${esc(e.version)}</span>\` : ''}
         </div>
         \${e.description ? \`<p style="font-size:13px;color:#9098b8;margin:0 0 6px">\${esc(e.description)}</p>\` : ''}
@@ -754,6 +754,150 @@ export async function onRequestGet() {
   });
 }`
 }
+
+function genChangelogBadgeLinked(siteId: string, cfg: any) {
+  return `<!-- SiteControl Changelog Badge (verlinkt auf /changelog) -->
+<!-- Vor </body> einfügen — erscheint wenn neuer Eintrag vorhanden -->
+<script>
+(function() {
+  var SITE_ID = '${siteId}';
+  var API = '${APP}/api/public/changelog?site_id=' + SITE_ID + '&limit=1';
+  var COLOR = '${cfg.widget_color || '#5b6af6'}';
+  var STORAGE_KEY = 'sc_cl_seen_' + SITE_ID;
+  var CL_URL = '/changelog';
+
+  fetch(API)
+    .then(function(r) { return r.json(); })
+    .then(function(entries) {
+      if (!entries || !entries.length) return;
+      var latest = entries[0];
+      if (localStorage.getItem(STORAGE_KEY) === latest.id) return;
+
+      var s = document.createElement('style');
+      s.textContent = '@keyframes _scSlide{from{opacity:0;transform:translateX(-16px)}to{opacity:1;transform:translateX(0)}}';
+      document.head.appendChild(s);
+
+      var badge = document.createElement('div');
+      badge.style.cssText = 'position:fixed;bottom:24px;left:24px;z-index:9999;max-width:300px;background:#111420;border:1px solid ' + COLOR + '44;border-radius:14px;padding:14px 16px;box-shadow:0 12px 40px rgba(0,0,0,.5);font-family:-apple-system,sans-serif;animation:_scSlide .3s ease;cursor:pointer';
+
+      var date = new Date(latest.published_at||latest.created_at).toLocaleDateString('de-DE',{month:'short',day:'numeric'});
+      var desc = latest.description ? (latest.description.length > 70 ? latest.description.slice(0,70) + '\u2026' : latest.description) : '';
+      var version = latest.version ? ' <span style="font-size:10px;color:#5a6280;font-family:monospace">v' + latest.version + '</span>' : '';
+
+      badge.innerHTML = '<div style="display:flex;align-items:flex-start;gap:10px">' +
+        '<div style="flex:1">' +
+          '<div style="font-size:10px;font-weight:700;color:' + COLOR + ';text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px">\uD83D\uDD04 Neuigkeiten · ' + date + '</div>' +
+          '<div style="font-size:13px;font-weight:700;color:#e8eaf0;margin-bottom:' + (desc ? '4' : '0') + 'px">' + latest.title + version + '</div>' +
+          (desc ? '<div style="font-size:11px;color:#9098b8;line-height:1.4">' + desc + '</div>' : '') +
+          '<div style="font-size:11px;color:' + COLOR + ';margin-top:7px;font-weight:600">Mehr erfahren \u2192</div>' +
+        '</div>' +
+        '<button id="_sc_cl_close" style="background:none;border:none;color:#5a6280;cursor:pointer;font-size:16px;padding:0;line-height:1;flex-shrink:0" aria-label="Schließen">\u2715</button>' +
+      '</div>';
+
+      badge.addEventListener('click', function(e) {
+        if (e.target && (e.target as Element).id === '_sc_cl_close') {
+          badge.remove();
+          localStorage.setItem(STORAGE_KEY, latest.id);
+          return;
+        }
+        localStorage.setItem(STORAGE_KEY, latest.id);
+        window.location.href = CL_URL;
+      });
+
+      document.body.appendChild(badge);
+
+      setTimeout(function() {
+        if (badge.parentNode) {
+          badge.style.opacity = '0';
+          badge.style.transition = 'opacity .4s';
+          setTimeout(function() { badge.remove(); }, 400);
+        }
+      }, 12000);
+    })
+    .catch(function() {});
+})();
+<\/script>` }
+
+function genChangelogEntryCF(siteId: string, site: Site, cfg: any) {
+  return `// functions/changelog/[id].js
+// Cloudflare Pages Function — /changelog/[id] (Einzeleintrag)
+// Pfad: functions/changelog/[id].js
+
+const SITE_ID = '${siteId}';
+const API = '${APP}';
+const SITE_NAME = '${site.name}';
+const CL_TITLE = '${cfg.widget_title || 'Changelog'}';
+const COLOR = '${cfg.widget_color || '#5b6af6'}';
+
+const TYPE_COLORS = { feature:'#5b6af6', fix:'#22c55e', improvement:'#f59e0b', breaking:'#ef4444' };
+const TYPE_LABELS = { feature:'Feature', fix:'Fix', improvement:'Verbesserung', breaking:'Breaking' };
+
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function fmtDate(d){ return new Date(d).toLocaleDateString('de-DE',{year:'numeric',month:'long',day:'numeric'}); }
+
+export async function onRequestGet({ params }) {
+  const { id } = params;
+  let entry;
+  try {
+    const res = await fetch(\`\${API}/api/public/changelog?site_id=\${SITE_ID}&id=\${id}&limit=1\`);
+    if (!res.ok) throw new Error();
+    const data = await res.json();
+    entry = Array.isArray(data) ? data[0] : data;
+    if (!entry) throw new Error();
+  } catch {
+    return new Response(
+      \`<!DOCTYPE html><html><body style="font-family:sans-serif;background:#0c0e14;color:#e8eaf0;padding:2rem"><h1>404</h1><p>Eintrag nicht gefunden.</p><a href="/changelog" style="color:\${COLOR}">← \${CL_TITLE}</a></body></html>\`,
+      { status: 404, headers: { 'Content-Type': 'text/html; charset=utf-8' } }
+    );
+  }
+
+  const col = TYPE_COLORS[entry.type] || COLOR;
+  const lbl = TYPE_LABELS[entry.type] || entry.type;
+
+  const html = \`<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>\${esc(entry.title)} – \${CL_TITLE} – \${SITE_NAME}</title>
+  <meta name="description" content="\${esc(entry.description || entry.title)}">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0c0e14;color:#e8eaf0}
+    .wrap{max-width:640px;margin:0 auto;padding:2rem 1.5rem 4rem}
+    nav{margin-bottom:2rem}nav a{color:#9098b8;text-decoration:none;font-size:14px}nav a:hover{color:COLOR}
+    .badge{font-size:11px;font-weight:700;padding:4px 12px;border-radius:20px;background:COL18;color:COL;border:1px solid COL30;display:inline-block;margin-bottom:14px}
+    h1{font-size:1.6rem;font-weight:900;line-height:1.2;margin-bottom:.75rem}
+    .meta{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:1.5rem;font-size:12px;color:#5a6280;font-family:monospace}
+    .body{font-size:15px;color:#9098b8;line-height:1.8;border-top:1px solid #1f2438;padding-top:1.5rem;margin-top:1rem}
+    .back{margin-top:2.5rem}
+    .back a{display:inline-flex;align-items:center;gap:6px;padding:10px 20px;border-radius:9px;background:rgba(91,106,246,.1);color:COLOR;text-decoration:none;font-weight:600;font-size:14px;border:1px solid rgba(91,106,246,.2)}
+    footer{text-align:center;padding:24px;color:#5a6280;font-size:13px;border-top:1px solid #1f2438;margin-top:2rem}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <nav><a href="/changelog">← \${CL_TITLE}</a></nav>
+  <span class="badge" style="background:\${col}18;color:\${col};border-color:\${col}30">\${lbl}</span>
+  <h1>\${esc(entry.title)}</h1>
+  <div class="meta">
+    \${entry.version ? \`<span>v\${esc(entry.version)}</span>\` : ''}
+    <time>\${fmtDate(entry.published_at||entry.created_at)}</time>
+  </div>
+  \${entry.description ? \`<div class="body">\${esc(entry.description)}</div>\` : ''}
+  <div class="back"><a href="/changelog">← Alle Einträge</a></div>
+</div>
+<footer>\${SITE_NAME} &middot; <a href="/changelog" style="color:#5a6280">\${CL_TITLE}</a></footer>
+</body>
+</html>\`;
+
+  return new Response(html, {
+    headers: {
+      'Content-Type': 'text/html; charset=utf-8',
+      'Cache-Control': 'public, max-age=600, s-maxage=1800',
+    }
+  });
+}` }
 
 // ── Main Component ─────────────────────────────────────────────────
 function EmbedPageContent() {
@@ -837,7 +981,9 @@ function EmbedPageContent() {
     changelog: {
       widget: genChangelogWidget(selectedSite, clCfg),
       badge: genChangelogBadge(selectedSite, clCfg),
+      badgeLinked: genChangelogBadgeLinked(selectedSite, clCfg),
       cloudflare: genChangelogCF(selectedSite, site, clCfg),
+      entryPage: genChangelogEntryCF(selectedSite, site, clCfg),
     },
   } : null
 
@@ -1241,9 +1387,9 @@ function EmbedPageContent() {
             {feature === 'changelog' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 24 }}>
                 {[
-                  { id: 'html', Icon: Code, label: 'Inline Widget (JS)', desc: 'Rendert Changelog direkt in ein <div> auf deiner Seite. Für Cloudflare Pages, statische Seiten, Next.js.' },
-                  { id: 'cloudflare', Icon: Cloud, label: '"Was ist neu?" Badge', desc: 'Floating Badge unten links — erscheint nur wenn ein neuer Eintrag da ist. Mit Auto-Hide via localStorage.' },
-                  { id: 'nextjs', Icon: Globe, label: 'Eigene Changelog-Seite (Cloudflare)', desc: 'Vollständige SSR-Seite als Cloudflare Pages Function unter /changelog.' },
+                  { id: 'cloudflare', Icon: Cloud, label: 'Vollständiges System (⭐ empfohlen)', desc: 'Floating Badge → /changelog Übersichtsseite → /changelog/[id] Einzelseite. Drei fertige Cloudflare Pages Functions.' },
+                  { id: 'html', Icon: Code, label: 'Nur Inline-Widget (direkt einbetten)', desc: 'Rendert die Changelog-Liste in ein beliebiges <div> deiner Seite — ohne Routing, ohne eigene Seiten.' },
+                  { id: 'nextjs', Icon: Globe, label: 'Nur Badge (standalone)', desc: 'Der "Was ist neu?"-Badge erscheint als Popup — ohne Link auf eine Changelog-Seite.' },
                 ].map(v => (
                   <label key={v.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 16, padding: '18px 20px', borderRadius: 12, border: `2px solid ${platform === v.id ? 'rgba(245,158,11,.5)' : 'var(--border)'}`, background: platform === v.id ? 'rgba(245,158,11,.05)' : 'var(--surface)', cursor: 'pointer', transition: 'all .15s' }}>
                     <input type="radio" name="variant" value={v.id} checked={platform === v.id} onChange={() => setPlatform(v.id as any)} style={{ display: 'none' }} />
@@ -1425,6 +1571,32 @@ function EmbedPageContent() {
             )}
 
             {/* CHANGELOG STEPS */}
+            {feature === 'changelog' && platform === 'cloudflare' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <div style={{ background: 'rgba(245,158,11,.06)', border: '1px solid rgba(245,158,11,.2)', borderRadius: 12, padding: 16, display: 'flex', gap: 10 }}>
+                  <span style={{ fontSize: 20 }}>⭐</span>
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: 13, color: '#f59e0b', marginBottom: 3 }}>Vollständiges Changelog-System</div>
+                    <p style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.6 }}>Du bekommst 3 Dateien: Badge-Script (auf beliebigen Seiten), Übersichtsseite → Einzelseiten. Alle Cloudflare Pages Functions.</p>
+                  </div>
+                </div>
+                {[
+                  { n: 1, title: 'Badge-Script einbinden (zeigt Neuigkeiten)', body: <><p style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 12, lineHeight: 1.7 }}>Füge dieses Script <strong>vor <code style={{ fontFamily: 'Space Mono, monospace', background: 'var(--bg)', padding: '1px 5px', borderRadius: 3, fontSize: 11 }}>&lt;/body&gt;</code></strong> ein — auf deiner Startseite oder überall. Der Badge erscheint wenn ein neuer Eintrag da ist und führt zur Changelog-Seite.</p><CopyBlock label="changelog-badge.js (vor </body>)" code={codes.changelog.badgeLinked} filename="changelog-badge.js" /></> },
+                  { n: 2, title: 'Übersichtsseite herunterladen (functions/changelog.js)', body: <><p style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 12, lineHeight: 1.7 }}>Lege diese Datei unter <code style={{ fontFamily: 'Space Mono, monospace', background: 'var(--bg)', padding: '1px 5px', borderRadius: 3, fontSize: 11 }}>functions/changelog.js</code> ab. Sie rendert <code style={{ fontFamily: 'Space Mono, monospace', background: 'var(--bg)', padding: '1px 5px', borderRadius: 3, fontSize: 11 }}>/changelog</code> als SSR-Seite — mit allen Einträgen als Links.</p><CopyBlock label="functions/changelog.js" code={codes.changelog.cloudflare} filename="changelog.js" /></> },
+                  { n: 3, title: 'Einzelseite herunterladen (functions/changelog/[id].js)', body: <><p style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 12, lineHeight: 1.7 }}>Lege diese Datei unter <code style={{ fontFamily: 'Space Mono, monospace', background: 'var(--bg)', padding: '1px 5px', borderRadius: 3, fontSize: 11 }}>functions/changelog/[id].js</code> ab. Damit erhält jeder Eintrag eine eigene Seite unter <code style={{ fontFamily: 'Space Mono, monospace', background: 'var(--bg)', padding: '1px 5px', borderRadius: 3, fontSize: 11 }}>/changelog/[id]</code>.</p><CopyBlock label="functions/changelog/[id].js" code={codes.changelog.entryPage} filename="[id].js" /></> },
+                  { n: 4, title: 'Navigation verlinken & deployen', body: <><p style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 12, lineHeight: 1.7 }}>Füge einen Link zu <code style={{ fontFamily: 'Space Mono, monospace', background: 'var(--bg)', padding: '1px 5px', borderRadius: 3, fontSize: 11 }}>/changelog</code> in deine Navigation ein, dann deployen:</p><CopyBlock label="Nav-Link" code='<a href="/changelog">Changelog</a>' /></> },
+                ].map(({ n, title, body }) => (
+                  <div key={n} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
+                    <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <StepBadge n={n} active done={false} />
+                      <span style={{ fontWeight: 700, fontSize: 14 }}>{title}</span>
+                    </div>
+                    <div style={{ padding: '16px 20px' }}>{body}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+
             {feature === 'changelog' && platform === 'html' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 {[
@@ -1442,28 +1614,11 @@ function EmbedPageContent() {
               </div>
             )}
 
-            {feature === 'changelog' && platform === 'cloudflare' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                {[
-                  { n: 1, title: '"Was ist neu?" Badge einbinden', body: <><p style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 12, lineHeight: 1.7 }}>Füge dieses Script <strong>vor <code style={{ fontFamily: 'Space Mono, monospace', background: 'var(--bg)', padding: '1px 5px', borderRadius: 3, fontSize: 11 }}>&lt;/body&gt;</code></strong> ein. Der Badge erscheint nur wenn ein neuer Eintrag vorhanden ist den der User noch nicht gesehen hat.</p><CopyBlock label="Changelog Badge (vor </body>)" code={codes.changelog.badge} filename="changelog-badge.html" /></> },
-                  { n: 2, title: 'Fertig!', body: <p style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.7 }}>Der Badge erscheint automatisch für neue Einträge und verschwindet nach 10 Sekunden oder beim Schließen. Der Status wird im localStorage gespeichert.</p> },
-                ].map(({ n, title, body }) => (
-                  <div key={n} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
-                    <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 12 }}>
-                      <StepBadge n={n} active done={false} />
-                      <span style={{ fontWeight: 700, fontSize: 14 }}>{title}</span>
-                    </div>
-                    <div style={{ padding: '16px 20px' }}>{body}</div>
-                  </div>
-                ))}
-              </div>
-            )}
-
             {feature === 'changelog' && platform === 'nextjs' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 {[
-                  { n: 1, title: 'Cloudflare Pages Function herunterladen', body: <><p style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 12, lineHeight: 1.7 }}>Lege diese Datei in deinem Projekt unter <code style={{ fontFamily: 'Space Mono, monospace', background: 'var(--bg)', padding: '1px 5px', borderRadius: 3, fontSize: 11 }}>functions/changelog.js</code> ab. Sie generiert eine vollständige SSR-Changelog-Seite.</p><CopyBlock label="functions/changelog.js" code={codes.changelog.cloudflare} filename="changelog.js" /></> },
-                  { n: 2, title: 'Verlinken & Deployen', body: <><p style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 12, lineHeight: 1.7 }}>Füge einen Link zu <code style={{ fontFamily: 'Space Mono, monospace', background: 'var(--bg)', padding: '1px 5px', borderRadius: 3, fontSize: 11 }}>/changelog</code> in deine Navigation ein und deploye auf Cloudflare Pages.</p><CopyBlock label="Navigation Link" code='<a href="/changelog">Changelog</a>' /></> },
+                  { n: 1, title: '"Was ist neu?" Badge einbinden (standalone)', body: <><p style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 12, lineHeight: 1.7 }}>Füge dieses Script <strong>vor <code style={{ fontFamily: 'Space Mono, monospace', background: 'var(--bg)', padding: '1px 5px', borderRadius: 3, fontSize: 11 }}>&lt;/body&gt;</code></strong> ein. Der Badge zeigt den neuesten Eintrag als Popup — ohne auf eine Seite zu verlinken.</p><CopyBlock label="Changelog Badge standalone (vor </body>)" code={codes.changelog.badge} filename="changelog-badge-standalone.html" /></> },
+                  { n: 2, title: 'Fertig!', body: <p style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.7 }}>Der Badge erscheint automatisch für neue Einträge und verschwindet nach 12 Sekunden oder beim Schließen. Der Status wird im localStorage gespeichert.</p> },
                 ].map(({ n, title, body }) => (
                   <div key={n} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
                     <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 12 }}>

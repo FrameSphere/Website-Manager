@@ -60,8 +60,17 @@ export default function DashboardShell({ user, profile, children }: Props) {
       }}>
         {/* Logo */}
         <div style={{ padding: '18px 16px 14px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-          <div style={{ width: 30, height: 30, borderRadius: 8, background: 'linear-gradient(135deg, #5b6af6, #a78bfa)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, fontWeight: 800, color: '#fff', flexShrink: 0 }}>S</div>
-          {sidebarOpen && <span style={{ fontWeight: 800, fontSize: 16, whiteSpace: 'nowrap', overflow: 'hidden' }}>SiteControl</span>}
+          <div style={{ width: 30, height: 30, borderRadius: 8, background: 'linear-gradient(135deg, #5b6af6, #a855f7)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, position: 'relative', overflow: 'hidden', boxShadow: '0 2px 8px rgba(91,106,246,.4)' }}>
+            {/* Geometric S icon */}
+            <svg viewBox="0 0 32 32" width="20" height="20" style={{ position: 'absolute' }}>
+              <rect x="9" y="7.5" width="14" height="3" rx="1.5" fill="white"/>
+              <rect x="9" y="7.5" width="3" height="8.5" rx="1.5" fill="white"/>
+              <rect x="9" y="14.5" width="14" height="3" rx="1.5" fill="white"/>
+              <rect x="20" y="14.5" width="3" height="8.5" rx="1.5" fill="white"/>
+              <rect x="9" y="21.5" width="14" height="3" rx="1.5" fill="white"/>
+            </svg>
+          </div>
+          {sidebarOpen && <span style={{ fontWeight: 800, fontSize: 16, whiteSpace: 'nowrap', overflow: 'hidden', background: 'linear-gradient(135deg, #7e93fb, #c084fc)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>SiteControl</span>}
         </div>
 
         {/* Nav */}
