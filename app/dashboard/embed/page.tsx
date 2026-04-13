@@ -1108,6 +1108,13 @@ function EmbedPageContent() {
                   </a>
                 </div>
               )}
+              {selectedSite && site && (
+                <div style={{ marginTop: 14, background: 'rgba(91,106,246,.06)', border: '1px solid rgba(91,106,246,.2)', borderRadius: 10, padding: '14px 16px', maxWidth: 460 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: '#7e93fb', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5, textTransform: 'uppercase', letterSpacing: '.08em', fontFamily: 'Space Mono, monospace' }}>🔑 Deine Verbindungs-ID</div>
+                  <div style={{ fontFamily: 'Space Mono, monospace', fontSize: 11, color: '#e8eaf0', marginBottom: 8, background: 'var(--bg)', padding: '7px 10px', borderRadius: 6, border: '1px solid var(--border)', wordBreak: 'break-all', letterSpacing: '.02em' }}>{selectedSite}</div>
+                  <p style={{ fontSize: 11, color: 'var(--text3)', lineHeight: 1.65, margin: 0 }}>Diese ID verbindet alle generierten Dateien automatisch mit deinen Inhalten. Sie ist bereits in jede Datei eingebaut — du musst <strong style={{ color: 'var(--text2)' }}>nirgends etwas manuell eintragen</strong>. Einfach Datei herunterladen, einsetzen, fertig.</p>
+                </div>
+              )}
             </div>
 
             {/* API Endpoint Info */}

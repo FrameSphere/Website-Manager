@@ -4,6 +4,46 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 
+// ── FrameSphere SSO Button ──────────────────────────────────────
+function FrameSphereButton({ label }: { label: string }) {
+  const [hovered, setHovered] = useState(false)
+  return (
+    <a
+      href="/api/auth/framesphere"
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+        width: '100%', padding: '11px 16px', borderRadius: 10, textDecoration: 'none',
+        background: hovered ? 'rgba(91,106,246,0.12)' : 'rgba(91,106,246,0.07)',
+        border: `1px solid ${hovered ? 'rgba(167,139,250,0.55)' : 'rgba(167,139,250,0.3)'}`,
+        color: '#a4bbfd', fontWeight: 600, fontSize: 14,
+        transition: 'background .2s, border-color .2s',
+        fontFamily: 'inherit',
+      }}
+    >
+      {/* FS Gradient Badge */}
+      <div style={{
+        width: 20, height: 20, borderRadius: 6, flexShrink: 0,
+        background: 'linear-gradient(135deg, #5b6af6, #a78bfa)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        boxShadow: hovered ? '0 0 10px rgba(167,139,250,0.5)' : 'none',
+        transition: 'box-shadow .2s',
+      }}>
+        <span style={{ color: 'white', fontWeight: 900, fontSize: 9, letterSpacing: '-0.5px' }}>FS</span>
+      </div>
+      {label}
+      <span style={{
+        marginLeft: 'auto', fontSize: 10, fontWeight: 700,
+        padding: '2px 6px', borderRadius: 4,
+        background: 'rgba(91,106,246,0.15)',
+        border: '1px solid rgba(167,139,250,0.3)',
+        color: '#a4bbfd',
+      }}>SSO</span>
+    </a>
+  )
+}
+
 export default function LoginPage() {
   const router = useRouter()
   const supabase = createClient()
@@ -47,6 +87,16 @@ export default function LoginPage() {
           <Link href="/signup" style={{ color: '#7e93fb', textDecoration: 'none', fontWeight: 600 }}>Jetzt registrieren</Link>
         </p>
 
+        {/* ── FrameSphere SSO ── */}
+        <FrameSphereButton label="Mit FrameSphere anmelden" />
+
+        {/* Divider */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '20px 0' }}>
+          <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+          <span style={{ color: 'var(--text3)', fontSize: 12 }}>oder mit E-Mail</span>
+          <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+        </div>
+
         <form onSubmit={handleLogin}>
           <div style={{ marginBottom: 16 }}>
             <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 7, color: 'var(--text2)' }}>E-Mail</label>
@@ -83,6 +133,13 @@ export default function LoginPage() {
             {loading ? 'Anmelden…' : 'Anmelden →'}
           </button>
         </form>
+
+        <p style={{ marginTop: 20, fontSize: 12, color: 'var(--text3)', textAlign: 'center' }}>
+          Mit FrameSphere anmelden = einloggen mit deinem FrameSphere-Account.{' '}
+          <a href="https://frame-sphere.vercel.app/register" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text3)', textDecoration: 'underline' }}>
+            Noch kein FrameSphere-Konto?
+          </a>
+        </p>
       </div>
     </div>
   )
