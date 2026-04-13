@@ -1,25 +1,24 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { createServerClient } from '@supabase/ssr'
 
 // GET /api/auth/framesphere/callback
 // FrameSphere redirectet hierher mit ?code=...
-// Wir tauschen den Code gegen Userdaten, finden/erstellen den Supabase-User
-// und generieren einen Magic Link für die Session.
+// Flow: Code → FS-User → Supabase-User (find/create) → Session direkt setzen → /sso-welcome
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url)
   const code  = searchParams.get('code')
   const error = searchParams.get('error')
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || origin
 
-  // Abgelehnt oder Fehler
   if (error || !code) {
     return NextResponse.redirect(`${appUrl}/login?error=framesphere_cancelled`)
   }
 
   try {
     // ── 1. Code gegen FrameSphere-Userdaten tauschen ──────────────
-    const fsApiUrl     = process.env.FRAMESPHERE_API_URL      || 'https://framesphere-backend.vercel.app/api'
-    const clientId     = process.env.FRAMESPHERE_CLIENT_ID    || 'sitecontrol'
+    const fsApiUrl     = process.env.FRAMESPHERE_API_URL       || 'https://framesphere-backend.vercel.app/api'
+    const clientId     = process.env.FRAMESPHERE_CLIENT_ID     || 'sitecontrol'
     const clientSecret = process.env.FRAMESPHERE_CLIENT_SECRET!
 
     const tokenRes = await fetch(`${fsApiUrl}/sso/token`, {
@@ -40,33 +39,50 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(`${appUrl}/login?error=framesphere_failed`)
     }
 
-    // ── 2. Supabase Admin Client ───────────────────────────────────
-    const supabase = createAdminClient(
+    // ── 2. Supabase Admin Client (kein Session-Caching nötig) ──────
+    const adminClient = createAdminClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      { auth: { autoRefreshToken: false, persistSession: false } }
     )
 
-    // ── 3. User finden oder erstellen ─────────────────────────────
-    const { data: { users: allUsers } } = await supabase.auth.admin.listUsers()
-    const existingUser = allUsers.find(u => u.email === fsUser.email.toLowerCase())
+    // ── 3. User per Email suchen (paginiert, alle Seiten) ─────────
+    let supabaseUserId: string | null = null
+    let page = 1
 
-    if (existingUser) {
-      // framesphere_id in user_metadata speichern (für spätere Lookups)
-      if (!existingUser.user_metadata?.framesphere_id) {
-        await supabase.auth.admin.updateUserById(existingUser.id, {
-          user_metadata: {
-            ...existingUser.user_metadata,
-            framesphere_id: String(fsUser.id),
-          },
-        })
+    while (true) {
+      const { data: { users }, error: listErr } = await adminClient.auth.admin.listUsers({
+        page,
+        perPage: 1000,
+      })
+      if (listErr || !users) break
+
+      const found = users.find(u => u.email?.toLowerCase() === fsUser.email.toLowerCase())
+      if (found) {
+        supabaseUserId = found.id
+        // framesphere_id nachrüsten falls noch nicht vorhanden
+        if (!found.user_metadata?.framesphere_id) {
+          await adminClient.auth.admin.updateUserById(found.id, {
+            user_metadata: {
+              ...found.user_metadata,
+              framesphere_id: String(fsUser.id),
+            },
+          })
+        }
+        break
       }
-    } else {
-      // Neuen User anlegen — E-Mail direkt bestätigt, kein Verify-Flow nötig
-      const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
+
+      if (users.length < 1000) break // letzte Seite
+      page++
+    }
+
+    // ── 4. Neuen Supabase-User erstellen falls nicht gefunden ──────
+    if (!supabaseUserId) {
+      const { data: newUser, error: createError } = await adminClient.auth.admin.createUser({
         email:         fsUser.email.toLowerCase(),
         email_confirm: true,
         user_metadata: {
-          full_name:      fsUser.name || '',
+          full_name:      fsUser.name  || '',
           avatar_url:     fsUser.avatarUrl || '',
           framesphere_id: String(fsUser.id),
         },
@@ -75,29 +91,47 @@ export async function GET(request: NextRequest) {
         console.error('[FS-SSO] createUser failed:', createError)
         return NextResponse.redirect(`${appUrl}/login?error=framesphere_server_error`)
       }
+      supabaseUserId = newUser.user.id
     }
 
-    // ── 4. Magic Link generieren ───────────────────────────────────
-    // WICHTIG: redirectTo muss auf /auth/callback?next=/sso-welcome zeigen,
-    // damit exchangeCodeForSession() die Session-Cookies korrekt setzt.
-    const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
-      type:  'magiclink',
-      email: fsUser.email.toLowerCase(),
-      options: {
-        redirectTo: `${appUrl}/auth/callback?next=/sso-welcome`,
-      },
+    // ── 5. Session direkt erstellen — kein Magic Link, kein Redirect-Chain ─
+    const { data: sessionData, error: sessionError } = await adminClient.auth.admin.createSession({
+      user_id: supabaseUserId,
     })
 
-    if (linkError || !linkData?.properties?.action_link) {
-      console.error('[FS-SSO] generateLink failed:', linkError)
+    if (sessionError || !sessionData?.session) {
+      console.error('[FS-SSO] createSession failed:', sessionError)
       return NextResponse.redirect(`${appUrl}/login?error=framesphere_server_error`)
     }
 
-    // ── 5. User zur Supabase Action-URL schicken
-    // Supabase verarbeitet den Token → setzt Session-Cookie → leitet zu
-    // /auth/callback?next=/sso-welcome weiter → exchangeCodeForSession()
-    // → Cookie sitzt korrekt → /sso-welcome → Dashboard ✓
-    return NextResponse.redirect(linkData.properties.action_link)
+    const { access_token, refresh_token } = sessionData.session
+
+    // ── 6. Session-Cookies direkt auf die Redirect-Response schreiben ─
+    // Wir bauen den Response zuerst und geben ihn dem SSR-Client als Cookie-Ziel.
+    const redirectResponse = NextResponse.redirect(`${appUrl}/sso-welcome`)
+
+    const ssrClient = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return request.cookies.getAll()
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              // @ts-ignore – options-Typ stimmt zwischen @supabase/ssr und next überein
+              redirectResponse.cookies.set(name, value, options)
+            })
+          },
+        },
+      }
+    )
+
+    // setSession triggert intern setAll → Cookies landen auf redirectResponse
+    await ssrClient.auth.setSession({ access_token, refresh_token })
+
+    return redirectResponse
 
   } catch (err) {
     console.error('[FS-SSO] unexpected error:', err)
