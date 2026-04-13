@@ -3,8 +3,8 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { createServerClient } from '@supabase/ssr'
 
 // GET /api/auth/framesphere/callback
-// FrameSphere redirectet hierher mit ?code=...
-// Flow: Code → FS-User → Supabase-User (find/create) → Session direkt setzen → /sso-welcome
+// Flow: Code → FS-User → Supabase-User (find/create)
+//       → generateLink → verifyOtp (server-seitig) → Session-Cookies setzen → /sso-welcome
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url)
   const code  = searchParams.get('code')
@@ -39,14 +39,16 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(`${appUrl}/login?error=framesphere_failed`)
     }
 
-    // ── 2. Supabase Admin Client (kein Session-Caching nötig) ──────
+    const email = fsUser.email.toLowerCase()
+
+    // ── 2. Supabase Admin Client ───────────────────────────────────
     const adminClient = createAdminClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
       { auth: { autoRefreshToken: false, persistSession: false } }
     )
 
-    // ── 3. User per Email suchen (paginiert, alle Seiten) ─────────
+    // ── 3. User per Email suchen (paginiert) ──────────────────────
     let supabaseUserId: string | null = null
     let page = 1
 
@@ -57,10 +59,9 @@ export async function GET(request: NextRequest) {
       })
       if (listErr || !users) break
 
-      const found = users.find(u => u.email?.toLowerCase() === fsUser.email.toLowerCase())
+      const found = users.find(u => u.email?.toLowerCase() === email)
       if (found) {
         supabaseUserId = found.id
-        // framesphere_id nachrüsten falls noch nicht vorhanden
         if (!found.user_metadata?.framesphere_id) {
           await adminClient.auth.admin.updateUserById(found.id, {
             user_metadata: {
@@ -72,17 +73,17 @@ export async function GET(request: NextRequest) {
         break
       }
 
-      if (users.length < 1000) break // letzte Seite
+      if (users.length < 1000) break
       page++
     }
 
-    // ── 4. Neuen Supabase-User erstellen falls nicht gefunden ──────
+    // ── 4. Neuen User erstellen falls nicht gefunden ───────────────
     if (!supabaseUserId) {
       const { data: newUser, error: createError } = await adminClient.auth.admin.createUser({
-        email:         fsUser.email.toLowerCase(),
+        email,
         email_confirm: true,
         user_metadata: {
-          full_name:      fsUser.name  || '',
+          full_name:      fsUser.name     || '',
           avatar_url:     fsUser.avatarUrl || '',
           framesphere_id: String(fsUser.id),
         },
@@ -94,20 +95,39 @@ export async function GET(request: NextRequest) {
       supabaseUserId = newUser.user.id
     }
 
-    // ── 5. Session direkt erstellen — kein Magic Link, kein Redirect-Chain ─
-    const { data: sessionData, error: sessionError } = await adminClient.auth.admin.createSession({
-      user_id: supabaseUserId,
+    // ── 5. Magic Link generieren – wir brauchen nur den hashed_token ─
+    const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
+      type:  'magiclink',
+      email,
+      options: { redirectTo: appUrl }, // muss gesetzt sein, Wert spielt keine Rolle
     })
 
-    if (sessionError || !sessionData?.session) {
-      console.error('[FS-SSO] createSession failed:', sessionError)
+    if (linkError || !linkData?.properties?.hashed_token) {
+      console.error('[FS-SSO] generateLink failed:', linkError)
       return NextResponse.redirect(`${appUrl}/login?error=framesphere_server_error`)
     }
 
-    const { access_token, refresh_token } = sessionData.session
+    // ── 6. Token server-seitig einlösen → Session direkt bekommen ──
+    // verifyOtp mit hashed_token funktioniert ohne Browser-Redirect.
+    const anonClient = createAdminClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      { auth: { autoRefreshToken: false, persistSession: false } }
+    )
 
-    // ── 6. Session-Cookies direkt auf die Redirect-Response schreiben ─
-    // Wir bauen den Response zuerst und geben ihn dem SSR-Client als Cookie-Ziel.
+    const { data: otpData, error: otpError } = await anonClient.auth.verifyOtp({
+      token_hash: linkData.properties.hashed_token,
+      type:       'magiclink',
+    })
+
+    if (otpError || !otpData?.session) {
+      console.error('[FS-SSO] verifyOtp failed:', otpError)
+      return NextResponse.redirect(`${appUrl}/login?error=framesphere_server_error`)
+    }
+
+    const { access_token, refresh_token } = otpData.session
+
+    // ── 7. Session-Cookies auf den Redirect setzen ─────────────────
     const redirectResponse = NextResponse.redirect(`${appUrl}/sso-welcome`)
 
     const ssrClient = createServerClient(
@@ -120,7 +140,7 @@ export async function GET(request: NextRequest) {
           },
           setAll(cookiesToSet) {
             cookiesToSet.forEach(({ name, value, options }) => {
-              // @ts-ignore – options-Typ stimmt zwischen @supabase/ssr und next überein
+              // @ts-ignore
               redirectResponse.cookies.set(name, value, options)
             })
           },
@@ -128,7 +148,6 @@ export async function GET(request: NextRequest) {
       }
     )
 
-    // setSession triggert intern setAll → Cookies landen auf redirectResponse
     await ssrClient.auth.setSession({ access_token, refresh_token })
 
     return redirectResponse
