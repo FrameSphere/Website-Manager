@@ -77,12 +77,14 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // ── 4. Magic Link generieren → setzt Supabase Session-Cookie ──
+    // ── 4. Magic Link generieren ───────────────────────────────────
+    // WICHTIG: redirectTo muss auf /auth/callback?next=/sso-welcome zeigen,
+    // damit exchangeCodeForSession() die Session-Cookies korrekt setzt.
     const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
       type:  'magiclink',
       email: fsUser.email.toLowerCase(),
       options: {
-        redirectTo: `${appUrl}/sso-welcome`,
+        redirectTo: `${appUrl}/auth/callback?next=/sso-welcome`,
       },
     })
 
@@ -91,7 +93,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(`${appUrl}/login?error=framesphere_server_error`)
     }
 
-    // ── 5. User zur Supabase Action-URL schicken (setzt Session-Cookie)
+    // ── 5. User zur Supabase Action-URL schicken
+    // Supabase verarbeitet den Token → setzt Session-Cookie → leitet zu
+    // /auth/callback?next=/sso-welcome weiter → exchangeCodeForSession()
+    // → Cookie sitzt korrekt → /sso-welcome → Dashboard ✓
     return NextResponse.redirect(linkData.properties.action_link)
 
   } catch (err) {
