@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
-import { createServerClient } from '@supabase/ssr'
+import { createServerClient, type CookieMethodsServer } from '@supabase/ssr'
 
 // GET /api/auth/framesphere/callback
 // Flow: Code → FS-User → Supabase-User (find/create)
@@ -99,7 +99,7 @@ export async function GET(request: NextRequest) {
     const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
       type:  'magiclink',
       email,
-      options: { redirectTo: appUrl }, // muss gesetzt sein, Wert spielt keine Rolle
+      options: { redirectTo: appUrl },
     })
 
     if (linkError || !linkData?.properties?.hashed_token) {
@@ -108,7 +108,6 @@ export async function GET(request: NextRequest) {
     }
 
     // ── 6. Token server-seitig einlösen → Session direkt bekommen ──
-    // verifyOtp mit hashed_token funktioniert ohne Browser-Redirect.
     const anonClient = createAdminClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -138,10 +137,9 @@ export async function GET(request: NextRequest) {
           getAll() {
             return request.cookies.getAll()
           },
-          setAll(cookiesToSet) {
+          setAll(cookiesToSet: { name: string; value: string; options?: Record<string, unknown> }[]) {
             cookiesToSet.forEach(({ name, value, options }) => {
-              // @ts-ignore
-              redirectResponse.cookies.set(name, value, options)
+              redirectResponse.cookies.set(name, value, options as Parameters<typeof redirectResponse.cookies.set>[2])
             })
           },
         },
